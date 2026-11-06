@@ -53,6 +53,35 @@ export async function linkChatCustomer(lineUserId: string, customerId: string | 
   return { ok: true };
 }
 
+/** ตั้งคนที่ทักมาทาง LINE เป็นลูกค้าใหม่ทันที (ไม่ต้องรับแจ้งซ่อมก่อน) แล้วผูกแชทให้อัตโนมัติ */
+export async function createCustomerFromChat(
+  lineUserId: string,
+  input: { name: string; phone: string; company_name: string },
+): Promise<ChatResult & { id?: string }> {
+  const g = await guard();
+  if ("error" in g) return { error: g.error };
+  const name = input.name.trim().slice(0, 120);
+  const phone = input.phone.replace(/\D/g, "");
+  const company = input.company_name.trim();
+  if (!name) return { error: "กรุณากรอกชื่อลูกค้า" };
+  if (phone && phone.length < 9) return { error: "เบอร์โทรไม่ถูกต้อง (เว้นว่างไว้ก่อนได้)" };
+
+  const { createClient } = await import("@/lib/supabase/server");
+  const db = await createClient();
+  const base = { name, phone, line_user_id: lineUserId };
+  let res = await db.from("customers").insert(company ? { ...base, company_name: company } : base).select("id").single();
+  // ยังไม่ได้รัน SQL 0008 (ไม่มีคอลัมน์ company_name) → บันทึกเฉพาะช่องหลัก
+  if (res.error && company && /company_name|schema cache/i.test(res.error.message)) {
+    res = await db.from("customers").insert(base).select("id").single();
+  }
+  if (res.error || !res.data) return { error: res.error?.message ?? "สร้างลูกค้าไม่ได้" };
+  const id = res.data.id as string;
+  await linkContact(lineUserId, id);
+  revalidatePath("/chat");
+  revalidatePath("/customers");
+  return { ok: true, id };
+}
+
 // ---------- แท็ก ----------
 
 export async function createTag(name: string, lineUserId?: string, pickedColor?: string): Promise<ChatResult & { id?: string }> {

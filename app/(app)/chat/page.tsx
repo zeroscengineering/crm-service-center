@@ -8,7 +8,7 @@ import { markRead } from "@/lib/chat";
 import { formatPhone } from "@/lib/format";
 import { PIPELINE, type RepairStatus } from "@/lib/constants";
 import StatusBadge from "@/components/StatusBadge";
-import { AutoRefresh, Conversation, LinkCustomer, type ChatMsg } from "./ChatClient";
+import { AutoRefresh, Conversation, LinkCustomer, NewCustomerFromChat, type ChatMsg } from "./ChatClient";
 import TagPicker, { TagChip, type Tag } from "./TagPicker";
 import { StatusControl } from "../jobs/[id]/JobPanels";
 import ChatCustomerPanel from "./ChatCustomerPanel";
@@ -297,7 +297,11 @@ export default async function ChatPage({
                     {selected.customers.name}
                   </Link>
                 ) : (
-                  <p className="text-sm text-muted">ยังไม่ได้ผูก</p>
+                  <NewCustomerFromChat
+                    key={selected.line_user_id}
+                    lineUserId={selected.line_user_id}
+                    defaultName={selected.display_name ?? ""}
+                  />
                 )}
                 {Boolean(profile) && (
                   <div className="mt-2">

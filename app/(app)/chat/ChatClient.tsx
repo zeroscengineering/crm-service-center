@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { linkChatCustomer, sendChat } from "./actions";
+import { createCustomerFromChat, linkChatCustomer, sendChat } from "./actions";
 import { searchCustomers } from "../jobs/new/actions";
 import { formatPhone } from "@/lib/format";
 import type { CustomerWithTools } from "@/lib/types";
@@ -193,7 +192,7 @@ export function LinkCustomer({
   if (!open) {
     return (
       <button onClick={() => setOpen(true)} className="text-xs text-brand hover:underline">
-        {current ? "เปลี่ยนลูกค้าที่ผูก" : "ผูกกับลูกค้าในระบบ"}
+        {current ? "เปลี่ยนลูกค้าที่ผูก" : "หรือผูกกับลูกค้าที่มีอยู่แล้ว"}
       </button>
     );
   }
@@ -207,6 +206,9 @@ export function LinkCustomer({
         placeholder="ค้นหาชื่อ / เบอร์โทร"
         className="w-full rounded-lg border border-line px-3 py-1.5 text-sm"
       />
+      {q.trim().length >= 2 && results.length === 0 && (
+        <p className="text-xs text-muted">ไม่พบลูกค้าชื่อนี้ในระบบ ตั้งเป็นลูกค้าใหม่ได้จากช่องด้านบน</p>
+      )}
       <ul className="max-h-48 overflow-y-auto rounded-lg border border-line empty:hidden">
         {results.map((c) => (
           <li key={c.id}>
@@ -244,10 +246,45 @@ export function LinkCustomer({
         <button onClick={() => setOpen(false)} className="text-muted hover:underline">
           ปิด
         </button>
-        <Link href="/jobs/new" className="ml-auto text-brand hover:underline">
-          + ลูกค้าใหม่ (รับแจ้งซ่อม)
-        </Link>
       </div>
     </div>
+  );
+}
+
+/** คนที่ทักมายังไม่ใช่ลูกค้า → ตั้งเป็นลูกค้าได้ทันทีจากหน้าแชท */
+export function NewCustomerFromChat({ lineUserId, defaultName }: { lineUserId: string; defaultName: string }) {
+  const [name, setName] = useState(defaultName);
+  const [phone, setPhone] = useState("");
+  const [company, setCompany] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const router = useRouter();
+  const field = "w-full rounded-lg border border-line bg-white px-3 py-1.5 text-sm outline-none focus:border-graphite";
+
+  return (
+    <form
+      className="space-y-2 rounded-lg border border-line bg-steel/40 p-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        start(async () => {
+          const r = await createCustomerFromChat(lineUserId, { name, phone, company_name: company });
+          if (r.error) setError(r.error);
+          else {
+            setError(null);
+            router.refresh();
+          }
+        });
+      }}
+    >
+      <p className="text-sm font-medium">ตั้งเป็นลูกค้าใหม่</p>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="ชื่อลูกค้า" className={field} required />
+      <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="เบอร์โทร (ใส่ทีหลังได้)" inputMode="tel" className={field} />
+      <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="ชื่อบริษัท / ร้าน (ถ้ามี)" className={field} />
+      <button disabled={pending || !name.trim()} className="w-full rounded-lg bg-graphite px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50">
+        {pending ? "กำลังบันทึก" : "บันทึกเป็นลูกค้า"}
+      </button>
+      {error && <p className="text-xs text-rose-700">{error}</p>}
+      <p className="text-[11px] text-muted">บันทึกแล้วจะผูกกับแชทนี้ทันที แก้ข้อมูลเพิ่ม เขียนโน้ต และบันทึกการส่งของได้ต่อเลย</p>
+    </form>
   );
 }

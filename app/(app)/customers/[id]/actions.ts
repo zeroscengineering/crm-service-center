@@ -17,7 +17,7 @@ export async function updateCustomer(_prev: SaveState, fd: FormData): Promise<Sa
   const phone = normalizePhone(s(fd, "phone"));
   const email = s(fd, "email");
   if (!name) return { error: "กรุณากรอกชื่อ" };
-  if (phone.length < 9) return { error: "เบอร์โทรไม่ถูกต้อง" };
+  if (phone && phone.length < 9) return { error: "เบอร์โทรไม่ถูกต้อง" };
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "อีเมลไม่ถูกต้อง" };
 
   const supabase = await createClient();
