@@ -33,15 +33,21 @@ async function handleLink(ev: LineEvent, token: string, canReply: boolean, base:
   const text = ev.message?.text?.trim().toUpperCase();
   if (!userId || !text || ev.source?.type !== "user") return;
 
-  const [docNo, last4] = text.split(/\s+/);
-  if (!docNo || docNo.length > 50) return;
-
+  if (text.length > 60) return;
   const db = createAdminClient();
-  const { data: job } = await db
-    .from("repair_jobs")
-    .select("id, doc_no, status, customer_id, customers(id, phone, line_user_id)")
-    .eq("doc_no", docNo)
-    .maybeSingle();
+  const select = "id, doc_no, status, customer_id, customers(id, phone, line_user_id)";
+
+  // 1) ทั้งข้อความคือเลขที่เอกสาร (รองรับเลขที่มีช่องว่าง เช่น "TEST 1")
+  // 2) หรือ "เลขที่เอกสาร + เบอร์ 4 ตัวท้าย"
+  let last4: string | undefined;
+  let { data: job } = await db.from("repair_jobs").select(select).eq("doc_no", text).maybeSingle();
+  if (!job) {
+    const m = text.match(/^(.+?)\s+(\d{4})$/);
+    if (m) {
+      last4 = m[2];
+      ({ data: job } = await db.from("repair_jobs").select(select).eq("doc_no", m[1]).maybeSingle());
+    }
+  }
   if (!job) return; // ไม่ใช่เลขที่เอกสาร — ปล่อยให้ระบบเดิมจัดการ
 
   const j = job as unknown as {
