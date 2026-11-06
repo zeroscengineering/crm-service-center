@@ -83,6 +83,104 @@ export async function createCustomerFromChat(
   return { ok: true, id };
 }
 
+// ---------- ผูกดีล (งานซ่อม) ที่มีอยู่แล้วกับแชท ----------
+export type AssignableJob = {
+  id: string;
+  doc_no: string;
+  status: string;
+  customer_id: string;
+  customer_name: string;
+  tool: string;
+};
+
+/** ค้นหางานซ่อมจากเลขที่เอกสาร / ชื่อลูกค้า / รุ่นเครื่อง (ว่าง = งานล่าสุด) */
+export async function searchAssignableJobs(query: string, excludeCustomerId?: string | null): Promise<AssignableJob[]> {
+  await requireProfile();
+  const { createClient } = await import("@/lib/supabase/server");
+  const db = await createClient();
+  const q = query.trim().replace(/[%,()*]/g, "");
+  let sel = db
+    .from("repair_jobs")
+    .select("id, doc_no, status, customer_id, customers!inner(name, phone), tools(brand, model)")
+    .order("created_at", { ascending: false })
+    .limit(10);
+  if (excludeCustomerId) sel = sel.neq("customer_id", excludeCustomerId);
+  if (q) {
+    // ค้นเลขที่เอกสารก่อน ถ้าไม่เจอค่อยค้นชื่อลูกค้า
+    const byDoc = await sel.ilike("doc_no", `%${q}%`);
+    let rows = byDoc.data ?? [];
+    if (rows.length === 0) {
+      let s2 = db
+        .from("repair_jobs")
+        .select("id, doc_no, status, customer_id, customers!inner(name, phone), tools(brand, model)")
+        .or(`name.ilike.%${q}%,phone.ilike.%${q.replace(/\D/g, "") || q}%`, { referencedTable: "customers" })
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (excludeCustomerId) s2 = s2.neq("customer_id", excludeCustomerId);
+      rows = (await s2).data ?? [];
+    }
+    return mapJobs(rows);
+  }
+  return mapJobs((await sel).data ?? []);
+}
+
+function mapJobs(rows: unknown[]): AssignableJob[] {
+  return (rows as {
+    id: string;
+    doc_no: string;
+    status: string;
+    customer_id: string;
+    customers: { name: string } | null;
+    tools: { brand: string; model: string } | null;
+  }[]).map((r) => ({
+    id: r.id,
+    doc_no: r.doc_no,
+    status: r.status,
+    customer_id: r.customer_id,
+    customer_name: r.customers?.name ?? "-",
+    tool: r.tools ? `${r.tools.brand} ${r.tools.model}` : "",
+  }));
+}
+
+/** ย้ายงานซ่อม (พร้อมเครื่อง ใบเสนอราคา และการส่งของของงานนั้น) มาเป็นของลูกค้าที่ผูกกับแชทนี้
+ *  ผลคือแจ้งเตือนสถานะงานจะส่งเข้า LINE คนนี้ */
+export async function assignJobToChat(lineUserId: string, jobId: string): Promise<ChatResult> {
+  const g = await guard();
+  if ("error" in g) return { error: g.error };
+  const { createClient } = await import("@/lib/supabase/server");
+  const db = await createClient();
+
+  const { data: contact } = await db.from("line_contacts").select("customer_id").eq("line_user_id", lineUserId).maybeSingle();
+  const target = contact?.customer_id as string | null | undefined;
+  if (!target) return { error: "ตั้งแชทนี้เป็นลูกค้าก่อน แล้วค่อยเลือกดีล" };
+
+  const { data: job } = await db.from("repair_jobs").select("id, customer_id, tool_id").eq("id", jobId).maybeSingle();
+  if (!job) return { error: "ไม่พบงานซ่อม" };
+  if (job.customer_id === target) return { ok: true, info: "งานนี้เป็นของลูกค้าคนนี้อยู่แล้ว" };
+  const oldCustomer = job.customer_id as string;
+
+  // ย้ายเครื่องมือ และงานทุกงานของเครื่องนั้นที่เป็นของลูกค้าเดิม (ให้ข้อมูลตรงกัน)
+  const { error: toolErr } = await db.from("tools").update({ customer_id: target }).eq("id", job.tool_id);
+  if (toolErr) return { error: toolErr.message };
+  const { data: moved, error: jobErr } = await db
+    .from("repair_jobs")
+    .update({ customer_id: target })
+    .eq("tool_id", job.tool_id)
+    .eq("customer_id", oldCustomer)
+    .select("id");
+  if (jobErr) return { error: jobErr.message };
+  const ids = (moved ?? []).map((r) => r.id as string);
+  if (ids.length) {
+    await db.from("quotations").update({ customer_id: target }).in("repair_job_id", ids);
+    await db.from("shipments").update({ customer_id: target }).in("repair_job_id", ids);
+  }
+
+  revalidatePath("/chat");
+  revalidatePath("/jobs", "layout");
+  revalidatePath("/customers", "layout");
+  return { ok: true, info: ids.length > 1 ? `ย้ายแล้ว ${ids.length} งาน (เครื่องเดียวกัน)` : "ผูกดีลกับแชทนี้แล้ว" };
+}
+
 // ---------- แท็ก ----------
 
 export async function createTag(name: string, lineUserId?: string, pickedColor?: string): Promise<ChatResult & { id?: string }> {

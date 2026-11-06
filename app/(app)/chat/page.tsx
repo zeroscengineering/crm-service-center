@@ -8,7 +8,7 @@ import { markRead } from "@/lib/chat";
 import { formatPhone } from "@/lib/format";
 import { PIPELINE, type RepairStatus } from "@/lib/constants";
 import StatusBadge from "@/components/StatusBadge";
-import { AutoRefresh, Conversation, LinkCustomer, NewCustomerFromChat, type ChatMsg } from "./ChatClient";
+import { AssignExistingJob, AutoRefresh, Conversation, LinkCustomer, NewCustomerFromChat, type ChatMsg } from "./ChatClient";
 import TagPicker, { TagChip, type Tag } from "./TagPicker";
 import { StatusControl } from "../jobs/[id]/JobPanels";
 import ChatCustomerPanel from "./ChatCustomerPanel";
@@ -346,6 +346,9 @@ export default async function ChatPage({
                     ))}
                     {jobs.length === 0 && <li className="text-xs text-zinc-400">ยังไม่มีงานซ่อม</li>}
                   </ul>
+                  <div className="mt-2">
+                    <AssignExistingJob lineUserId={selected.line_user_id} customerId={selected.customers.id} />
+                  </div>
                   {jobs.some((j) => PIPELINE.indexOf(j.status) < PIPELINE.indexOf("delivered")) && (
                     <p className="mt-2 text-[11px] text-zinc-400">ส่งข้อความแจ้งสถานะสำเร็จรูปได้จากหน้ารายละเอียดงาน</p>
                   )}

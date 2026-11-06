@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createCustomerFromChat, linkChatCustomer, sendChat } from "./actions";
+import { assignJobToChat, createCustomerFromChat, linkChatCustomer, searchAssignableJobs, sendChat, type AssignableJob } from "./actions";
 import { searchCustomers } from "../jobs/new/actions";
 import { formatPhone } from "@/lib/format";
 import type { CustomerWithTools } from "@/lib/types";
@@ -286,5 +286,86 @@ export function NewCustomerFromChat({ lineUserId, defaultName }: { lineUserId: s
       {error && <p className="text-xs text-rose-700">{error}</p>}
       <p className="text-[11px] text-muted">บันทึกแล้วจะผูกกับแชทนี้ทันที แก้ข้อมูลเพิ่ม เขียนโน้ต และบันทึกการส่งของได้ต่อเลย</p>
     </form>
+  );
+}
+
+/** เลือกดีล (งานซ่อม) ที่สร้างไว้แล้ว มาเป็นของแชทนี้ */
+export function AssignExistingJob({ lineUserId, customerId }: { lineUserId: string; customerId: string }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<AssignableJob[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
+  const [pending, start] = useTransition();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    const t = setTimeout(async () => {
+      setResults(await searchAssignableJobs(q, customerId).catch(() => []));
+      setLoading(false);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [q, open, customerId]);
+
+  if (!open) {
+    return (
+      <div className="space-y-1">
+        <button onClick={() => setOpen(true)} className="text-xs font-medium text-brand hover:underline">
+          + เลือกดีลที่สร้างไว้แล้ว
+        </button>
+        {msg && <p className={`text-xs ${msg.ok ? "text-emerald-700" : "text-rose-700"}`}>{msg.t}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border border-line bg-steel/40 p-2">
+      <input
+        autoFocus
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="เลขที่เอกสาร SV... / ชื่อลูกค้า / เบอร์"
+        className="w-full rounded-lg border border-line bg-white px-3 py-1.5 text-sm"
+      />
+      <ul className="max-h-60 space-y-1 overflow-y-auto">
+        {results.map((j) => (
+          <li key={j.id}>
+            <button
+              disabled={pending}
+              onClick={() => {
+                if (!confirm(`ย้ายงาน ${j.doc_no} (ของ ${j.customer_name}) มาเป็นของแชทนี้?\nแจ้งเตือนสถานะงานนี้จะส่งเข้า LINE คนนี้`)) return;
+                start(async () => {
+                  const r = await assignJobToChat(lineUserId, j.id);
+                  setMsg(r.error ? { ok: false, t: r.error } : { ok: true, t: r.info ?? "เรียบร้อย" });
+                  if (!r.error) {
+                    setOpen(false);
+                    setQ("");
+                    router.refresh();
+                  }
+                });
+              }}
+              className="w-full rounded-md bg-white px-2 py-1.5 text-left text-sm ring-1 ring-line hover:ring-graphite/40 disabled:opacity-60"
+            >
+              <span className="font-mono text-xs font-semibold">{j.doc_no}</span>
+              <span className="block truncate text-xs text-muted">
+                {j.customer_name}
+                {j.tool ? ` · ${j.tool}` : ""}
+              </span>
+            </button>
+          </li>
+        ))}
+        {!loading && results.length === 0 && <li className="px-1 text-xs text-muted">ไม่พบงานซ่อม</li>}
+        {loading && <li className="px-1 text-xs text-muted">กำลังค้นหา</li>}
+      </ul>
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted">กดเลือกเพื่อย้ายงานมาที่แชทนี้</span>
+        <button onClick={() => setOpen(false)} className="text-muted hover:underline">
+          ปิด
+        </button>
+      </div>
+      {msg && !msg.ok && <p className="text-xs text-rose-700">{msg.t}</p>}
+    </div>
   );
 }
