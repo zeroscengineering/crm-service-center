@@ -221,17 +221,24 @@ export function ShipmentActions({ shipment, canNotify }: { shipment: Shipment; c
 // ======================= การ์ดขนส่งในหน้างาน =======================
 export function JobShippingPanel({
   jobId,
+  customerId,
+  jobs,
   shipments,
   carriers,
   defaultCarrierId,
   canEdit,
 }: {
-  jobId: string;
+  /** หน้างานซ่อม: ผูกกับงานนี้ */
+  jobId?: string;
+  /** หน้าแชท/ลูกค้า: ผูกกับลูกค้า และเลือกงานได้ */
+  customerId?: string;
+  jobs?: { id: string; doc_no: string }[];
   shipments: Shipment[];
   carriers: Carrier[];
   defaultCarrierId: string | null;
   canEdit: boolean;
 }) {
+  const docById = new Map((jobs ?? []).map((j) => [j.id, j.doc_no]));
   const [state, action, pending] = useActionState<ShipResult, FormData>(addShipment, {});
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLFormElement>(null);
@@ -257,6 +264,9 @@ export function JobShippingPanel({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-medium">
                   {DIRECTION_LABEL[s.direction]} · {c?.name ?? "ไม่ระบุขนส่ง"}
+                  {jobs && s.repair_job_id && docById.get(s.repair_job_id) && (
+                    <span className="ml-1 font-mono text-xs text-muted">{docById.get(s.repair_job_id)}</span>
+                  )}
                 </span>
                 <ShipmentStatusSelect shipment={s} canEdit={canEdit} />
               </div>
@@ -285,7 +295,21 @@ export function JobShippingPanel({
       {canEdit &&
         (open ? (
           <form ref={ref} onSubmit={submitter(action)} className="space-y-2 rounded-lg bg-steel/50 p-3">
-            <input type="hidden" name="repair_job_id" value={jobId} />
+            {jobId ? (
+              <input type="hidden" name="repair_job_id" value={jobId} />
+            ) : (
+              <>
+                <input type="hidden" name="customer_id" value={customerId ?? ""} />
+                <select name="repair_job_id" defaultValue={jobs?.[0]?.id ?? ""} className={input}>
+                  <option value="">ไม่ผูกกับงานซ่อม</option>
+                  {(jobs ?? []).map((j) => (
+                    <option key={j.id} value={j.id}>
+                      งาน {j.doc_no}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <select name="direction" defaultValue="outbound" className={input}>
                 <option value="outbound">{DIRECTION_LABEL.outbound}</option>

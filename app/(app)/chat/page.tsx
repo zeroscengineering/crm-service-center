@@ -11,6 +11,7 @@ import StatusBadge from "@/components/StatusBadge";
 import { AutoRefresh, Conversation, LinkCustomer, type ChatMsg } from "./ChatClient";
 import TagPicker, { TagChip, type Tag } from "./TagPicker";
 import { StatusControl } from "../jobs/[id]/JobPanels";
+import ChatCustomerPanel from "./ChatCustomerPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -288,7 +289,7 @@ export default async function ChatPage({
             />
 
             {/* ข้อมูลลูกค้า */}
-            <aside className="hidden w-72 shrink-0 space-y-4 overflow-y-auto border-l border-line p-4 lg:block">
+            <aside className="hidden w-80 shrink-0 space-y-4 overflow-y-auto border-l border-line p-4 lg:block">
               <div>
                 <p className="mb-1 text-[13px] font-medium text-muted">ลูกค้า</p>
                 {selected.customers ? (
@@ -345,6 +346,14 @@ export default async function ChatPage({
                     <p className="mt-2 text-[11px] text-zinc-400">ส่งข้อความแจ้งสถานะสำเร็จรูปได้จากหน้ารายละเอียดงาน</p>
                   )}
                 </div>
+              )}
+              {selected.customers && (
+                <ChatCustomerPanel
+                  customerId={selected.customers.id}
+                  lineUserId={selected.line_user_id}
+                  jobs={jobs.map((j) => ({ id: j.id, doc_no: j.doc_no }))}
+                  canEdit={profile.role === "admin" || profile.role === "technician"}
+                />
               )}
             </aside>
           </div>

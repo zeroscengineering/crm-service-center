@@ -29,6 +29,7 @@ function s(fd: FormData, k: string) {
 
 function refresh(jobId?: string | null) {
   revalidatePath("/shipping");
+  revalidatePath("/chat");
   if (jobId) revalidatePath(`/jobs/${jobId}`);
 }
 
@@ -80,11 +81,20 @@ export async function setCustomerCarrier(customerId: string, carrierId: string |
 export async function addShipment(_p: ShipResult, fd: FormData): Promise<ShipResult> {
   const a = await admin();
   if ("error" in a) return { error: a.error };
-  const jobId = s(fd, "repair_job_id");
+  const jobId = s(fd, "repair_job_id") || null;
   const carrierId = s(fd, "carrier_id") || null;
 
-  const { data: job } = await a.supabase.from("repair_jobs").select("customer_id").eq("id", jobId).maybeSingle();
-  if (!job) return { error: "ไม่พบงานซ่อม" };
+  // ผูกกับงานซ่อม (ถ้าเลือก) หรือผูกกับลูกค้าอย่างเดียว (บันทึกจากหน้าแชท)
+  let job: { customer_id: string | null } | null = null;
+  if (jobId) {
+    const { data } = await a.supabase.from("repair_jobs").select("customer_id").eq("id", jobId).maybeSingle();
+    if (!data) return { error: "ไม่พบงานซ่อม" };
+    job = data as { customer_id: string | null };
+  } else {
+    const cid = s(fd, "customer_id");
+    if (!cid) return { error: "กรุณาเลือกงานซ่อมหรือลูกค้า" };
+    job = { customer_id: cid };
+  }
 
   const cost = s(fd, "cost");
   const { error } = await a.supabase.from("shipments").insert({
@@ -110,6 +120,7 @@ export async function addShipment(_p: ShipResult, fd: FormData): Promise<ShipRes
       .is("default_carrier_id", null);
   }
   refresh(jobId);
+  if (job.customer_id) revalidatePath(`/customers/${job.customer_id}`);
   return { ok: true };
 }
 

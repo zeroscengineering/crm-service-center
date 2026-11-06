@@ -40,11 +40,13 @@ export async function updateCustomer(_prev: SaveState, fd: FormData): Promise<Sa
     ({ error } = await supabase.from("customers").update(base).eq("id", id));
     if (!error) {
       revalidatePath(`/customers/${id}`);
+  revalidatePath("/chat");
       return { error: "บันทึกข้อมูลหลักแล้ว แต่ช่องใหม่ (บริษัท ผู้ดูแล ฯลฯ) ต้องรัน SQL 0008 ก่อน" };
     }
   }
   if (error) return { error: error.message };
   revalidatePath(`/customers/${id}`);
+  revalidatePath("/chat");
   revalidatePath("/customers");
   return { ok: true };
 }
@@ -56,6 +58,7 @@ export async function unlinkLine(customerId: string): Promise<SaveState> {
   if (error) return { error: error.message };
   await supabase.from("line_contacts").update({ customer_id: null }).eq("customer_id", customerId);
   revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/chat");
   return { ok: true };
 }
 
@@ -69,6 +72,7 @@ export async function addCustomerNote(_prev: SaveState, fd: FormData): Promise<S
   const { error } = await supabase.from("customer_notes").insert({ customer_id: customerId, body });
   if (error) return { error: error.message };
   revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/chat");
   return { ok: true };
 }
 
@@ -78,6 +82,7 @@ export async function deleteCustomerNote(customerId: string, noteId: string): Pr
   const { error } = await supabase.from("customer_notes").delete().eq("id", noteId).eq("customer_id", customerId);
   if (error) return { error: error.message };
   revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/chat");
   return { ok: true };
 }
 
@@ -114,6 +119,7 @@ export async function createCustomerTag(customerId: string, name: string): Promi
     .upsert({ customer_id: customerId, tag_id: data.id }, { ignoreDuplicates: true });
   if (error) return { error: error.message };
   revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/chat");
   return { ok: true };
 }
 
