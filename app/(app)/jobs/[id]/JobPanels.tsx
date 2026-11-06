@@ -11,10 +11,11 @@ import {
   type ActionResult,
 } from "../actions";
 import { PIPELINE, STATUS_LABEL, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { ArrowRight, X } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 
 const input =
-  "mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20";
+  "mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none focus:border-graphite focus:ring-2 focus:ring-graphite/10";
 
 /** ส่งฟอร์มแบบไม่ให้ React ล้างค่าเมื่อเกิด error */
 function useFormSubmit(action: (fd: FormData) => void) {
@@ -27,7 +28,7 @@ function useFormSubmit(action: (fd: FormData) => void) {
 
 function Msg({ state }: { state: ActionResult }) {
   if (state.error) return <span className="text-sm text-rose-600">{state.error}</span>;
-  if (state.ok) return <span className="text-sm text-emerald-600">บันทึกแล้ว ✓</span>;
+  if (state.ok) return <span className="text-sm text-emerald-600">บันทึกแล้ว </span>;
   return null;
 }
 
@@ -57,16 +58,20 @@ export function StatusControl({ jobId, status }: { jobId: string; status: Repair
         <button
           onClick={() => change(next)}
           disabled={pending}
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+          className="btn btn-primary disabled:opacity-60"
         >
-          {pending ? "กำลังบันทึก..." : `ถัดไป → ${STATUS_LABEL[next]}`}
+          {pending ? "กำลังบันทึก..." : (
+            <>
+              {STATUS_LABEL[next]} <ArrowRight size={15} />
+            </>
+          )}
         </button>
       )}
       <select
         value={status}
         disabled={pending}
         onChange={(e) => change(e.target.value as RepairStatus)}
-        className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+        className="rounded-lg border border-line bg-white px-3 py-2 text-sm"
       >
         {PIPELINE.map((s) => (
           <option key={s} value={s}>
@@ -76,7 +81,7 @@ export function StatusControl({ jobId, status }: { jobId: string; status: Repair
         <option value="cancelled">{STATUS_LABEL.cancelled}</option>
       </select>
       {error && <span className="text-sm text-rose-600">{error}</span>}
-      {info && <span className="text-sm text-emerald-700">💬 {info}</span>}
+      {info && <span className="text-sm text-emerald-700">{info}</span>}
     </div>
   );
 }
@@ -114,7 +119,7 @@ export function JobInfoForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-3 space-y-3 rounded-lg bg-zinc-50 p-4">
+    <form onSubmit={onSubmit} className="mt-3 space-y-3 rounded-lg bg-steel/50 p-4">
       <input type="hidden" name="job_id" value={job.id} />
       <label className="block text-sm">
         อาการเสีย
@@ -159,7 +164,7 @@ export function JobInfoForm({
         <button disabled={pending} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
           {pending ? "กำลังบันทึก..." : "บันทึก"}
         </button>
-        <button type="button" onClick={() => setOpen(false)} className="text-sm text-zinc-500 hover:underline">
+        <button type="button" onClick={() => setOpen(false)} className="text-sm text-muted hover:underline">
           ยกเลิก
         </button>
         <Msg state={state} />
@@ -212,8 +217,8 @@ export function CostPanel({
     <div className="space-y-4">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-zinc-500">
-            <tr className="border-b border-zinc-200">
+          <thead className="text-left text-muted">
+            <tr className="border-b border-line">
               <th className="py-2 font-medium">อะไหล่</th>
               <th className="py-2 text-right font-medium">จำนวน</th>
               <th className="py-2 text-right font-medium">ราคา/หน่วย</th>
@@ -221,12 +226,12 @@ export function CostPanel({
               {canEdit && <th className="w-8" />}
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-line/70">
             {parts.map((p) => (
               <tr key={p.id}>
                 <td className="py-2">
                   {p.part_name}
-                  {p.part_code && <span className="ml-2 font-mono text-xs text-zinc-500">{p.part_code}</span>}
+                  {p.part_code && <span className="ml-2 font-mono text-xs text-muted">{p.part_code}</span>}
                 </td>
                 <td className="py-2 text-right">{Number(p.quantity)}</td>
                 <td className="py-2 text-right">{formatMoney(p.unit_price)}</td>
@@ -245,7 +250,7 @@ export function CostPanel({
                       }}
                       className="text-zinc-400 hover:text-rose-600"
                     >
-                      ✕
+                      <X size={14} />
                     </button>
                   </td>
                 )}
@@ -264,26 +269,26 @@ export function CostPanel({
       </div>
 
       {canEdit && (
-        <form ref={partForm} onSubmit={submitPart} className="grid grid-cols-2 gap-2 rounded-lg bg-zinc-50 p-3 sm:grid-cols-[2fr_1fr_80px_1fr_auto]">
+        <form ref={partForm} onSubmit={submitPart} className="grid grid-cols-2 gap-2 rounded-lg bg-steel/50 p-3 sm:grid-cols-[2fr_1fr_80px_1fr_auto]">
           <input type="hidden" name="job_id" value={jobId} />
           <input name="part_name" placeholder="ชื่ออะไหล่" className={`${input} col-span-2 mt-0 sm:col-span-1`} />
           <input name="part_code" placeholder="รหัส (ถ้ามี)" className={`${input} mt-0`} />
           <input name="quantity" type="number" step="any" min="0" defaultValue="1" className={`${input} mt-0`} />
           <input name="unit_price" type="number" step="any" min="0" placeholder="ราคา/หน่วย" className={`${input} mt-0`} />
-          <button disabled={partPending} className="rounded-lg bg-zinc-800 px-3 py-2 text-sm font-medium text-white disabled:opacity-60">
+          <button disabled={partPending} className="btn btn-dark btn-sm disabled:opacity-60">
             + เพิ่ม
           </button>
           {partState.error && <p className="col-span-full text-sm text-rose-600">{partState.error}</p>}
         </form>
       )}
 
-      <dl className="space-y-1 border-t border-zinc-200 pt-3 text-sm">
+      <dl className="space-y-1 border-t border-line pt-3 text-sm">
         <div className="flex justify-between">
-          <dt className="text-zinc-500">ค่าอะไหล่</dt>
+          <dt className="text-muted">ค่าอะไหล่</dt>
           <dd>{formatMoney(partsTotal)}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-zinc-500">ค่าแรง/ค่าบริการ</dt>
+          <dt className="text-muted">ค่าแรง/ค่าบริการ</dt>
           <dd>{formatMoney(laborCost)}</dd>
         </div>
         <div className="flex justify-between text-base font-bold">
@@ -291,12 +296,12 @@ export function CostPanel({
           <dd>฿ {formatMoney(grand)}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-zinc-500">ราคาประเมินที่แจ้งลูกค้า</dt>
+          <dt className="text-muted">ราคาประเมินที่แจ้งลูกค้า</dt>
           <dd>{quote === null ? "ยังไม่แจ้ง" : `฿ ${formatMoney(quote)}`}</dd>
         </div>
         {quote !== null && Math.abs(diff) > 0.009 && (
-          <p className={`text-right text-xs ${diff > 0 ? "text-amber-700" : "text-zinc-500"}`}>
-            {diff > 0 ? `⚠ เกินราคาประเมิน ${formatMoney(diff)} บาท` : `ต่ำกว่าราคาประเมิน ${formatMoney(-diff)} บาท`}
+          <p className={`text-right text-xs ${diff > 0 ? "text-amber-700" : "text-muted"}`}>
+            {diff > 0 ? `เกินราคาประเมิน ${formatMoney(diff)} บาท` : `ต่ำกว่าราคาประเมิน ${formatMoney(-diff)} บาท`}
           </p>
         )}
       </dl>
@@ -354,7 +359,7 @@ export function NoteForm({ jobId }: { jobId: string }) {
         }}
       />
       <div className="flex flex-col justify-end gap-1">
-        <button disabled={pending} className="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
+        <button disabled={pending} className="btn btn-dark btn-sm disabled:opacity-60">
           {pending ? "..." : "บันทึก"}
         </button>
       </div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { adminConfigured } from "@/lib/supabase/admin";
@@ -72,7 +73,7 @@ export default async function ChatPage({
       <div className="mx-auto max-w-xl rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
         <p className="font-semibold">ยังไม่ได้สร้างตารางแชท</p>
         <p className="mt-1">
-          เปิด Supabase → SQL Editor → วางไฟล์ <code>supabase/migrations/0003_line_chat.sql</code> → Run แล้วรีเฟรชหน้านี้
+          เปิด Supabase › SQL Editor › วางไฟล์ <code>supabase/migrations/0003_line_chat.sql</code> › Run แล้วรีเฟรชหน้านี้
         </p>
       </div>
     );
@@ -153,14 +154,14 @@ export default async function ChatPage({
   const name = (c: Contact) => c.customers?.name ?? c.display_name ?? "ผู้ติดต่อ LINE";
 
   return (
-    <div className="-m-4 flex h-[calc(100vh-0px)] md:-m-8">
+    <div className="-mx-4 -my-6 flex h-[calc(100dvh-64px)] md:-mx-10 md:-my-8 md:h-screen">
       <AutoRefresh seconds={5} />
 
       {/* ---------- รายชื่อ ---------- */}
       <aside
-        className={`w-full shrink-0 flex-col border-r border-zinc-200 bg-white md:flex md:w-80 ${selected ? "hidden" : "flex"}`}
+        className={`w-full shrink-0 flex-col border-r border-line bg-white md:flex md:w-80 ${selected ? "hidden" : "flex"}`}
       >
-        <div className="border-b border-zinc-200 p-3">
+        <div className="border-b border-line p-3">
           <h1 className="mb-2 text-lg font-bold">แชทลูกค้า</h1>
           <form>
             {selectedId && <input type="hidden" name="c" value={selectedId} />}
@@ -169,7 +170,7 @@ export default async function ChatPage({
               name="q"
               defaultValue={q}
               placeholder="ค้นหาชื่อ / เบอร์โทร"
-              className="w-full rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm"
+              className="w-full rounded-lg border border-line bg-steel/50 px-3 py-1.5 text-sm"
             />
           </form>
           {tagsReady && allTags.length > 0 && (
@@ -192,7 +193,7 @@ export default async function ChatPage({
               ))}
               <Link
                 href={qs({ tag: "none" })}
-                className={`rounded-full px-2 py-0.5 text-xs ring-1 ${tagFilter === "none" ? "bg-zinc-800 text-white ring-zinc-800" : "ring-zinc-300 text-zinc-500"}`}
+                className={`rounded-full px-2 py-0.5 text-xs ring-1 ${tagFilter === "none" ? "bg-zinc-800 text-white ring-zinc-800" : "ring-zinc-300 text-muted"}`}
               >
                 ไม่มีแท็ก
               </Link>
@@ -212,7 +213,7 @@ export default async function ChatPage({
             <li key={c.line_user_id}>
               <Link
                 href={qs({ c: c.line_user_id })}
-                className={`flex items-center gap-3 px-3 py-2.5 hover:bg-zinc-50 ${
+                className={`flex items-center gap-3 px-3 py-2.5 hover:bg-steel/50 ${
                   c.line_user_id === selectedId ? "bg-[#06C755]/10" : ""
                 }`}
               >
@@ -223,7 +224,7 @@ export default async function ChatPage({
                     <span className="shrink-0 text-[11px] text-zinc-400">{shortTime(c.last_message_at)}</span>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <p className={`truncate text-xs ${c.unread_count ? "text-zinc-800" : "text-zinc-500"}`}>
+                    <p className={`truncate text-xs ${c.unread_count ? "text-zinc-800" : "text-muted"}`}>
                       {c.last_message_text ?? (c.customers ? "" : "ยังไม่ได้ผูกกับลูกค้า")}
                     </p>
                     {c.unread_count > 0 && (
@@ -254,14 +255,14 @@ export default async function ChatPage({
       {/* ---------- บทสนทนา ---------- */}
       {selected ? (
         <section className="flex min-w-0 flex-1 flex-col bg-white">
-          <header className="flex items-center gap-3 border-b border-zinc-200 px-4 py-2.5">
-            <Link href="/chat" className="text-zinc-500 md:hidden">
-              ←
+          <header className="flex items-center gap-3 border-b border-line px-4 py-2.5">
+            <Link href="/chat" className="text-muted md:hidden">
+              <ArrowLeft size={18} />
             </Link>
             <Avatar c={selected} size={36} />
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold">{name(selected)}</p>
-              <p className="truncate text-xs text-zinc-500">
+              <p className="truncate text-xs text-muted">
                 {selected.display_name && selected.customers ? `LINE: ${selected.display_name} · ` : ""}
                 {selected.customers ? formatPhone(selected.customers.phone) : "ยังไม่ได้ผูกกับลูกค้าในระบบ"}
               </p>
@@ -287,15 +288,15 @@ export default async function ChatPage({
             />
 
             {/* ข้อมูลลูกค้า */}
-            <aside className="hidden w-72 shrink-0 space-y-4 overflow-y-auto border-l border-zinc-200 p-4 lg:block">
+            <aside className="hidden w-72 shrink-0 space-y-4 overflow-y-auto border-l border-line p-4 lg:block">
               <div>
-                <p className="mb-1 text-xs font-semibold uppercase text-zinc-400">ลูกค้า</p>
+                <p className="mb-1 text-[13px] font-medium text-muted">ลูกค้า</p>
                 {selected.customers ? (
                   <Link href={`/customers/${selected.customers.id}`} className="block text-sm font-medium text-brand hover:underline">
                     {selected.customers.name}
                   </Link>
                 ) : (
-                  <p className="text-sm text-zinc-500">ยังไม่ได้ผูก</p>
+                  <p className="text-sm text-muted">ยังไม่ได้ผูก</p>
                 )}
                 {profile.role === "admin" && (
                   <div className="mt-2">
@@ -317,13 +318,13 @@ export default async function ChatPage({
               )}
               {selected.customers && (
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase text-zinc-400">ดีล / งานซ่อม</p>
+                  <p className="mb-2 text-[13px] font-medium text-muted">ดีล / งานซ่อม</p>
                   <ul className="space-y-2">
                     {jobs.map((j) => (
-                      <li key={j.id} className="rounded-lg border border-zinc-200 p-2 text-sm">
+                      <li key={j.id} className="rounded-lg border border-line p-2 text-sm">
                         <Link href={`/jobs/${j.id}`} className="block hover:underline">
                           <span className="font-mono font-semibold">{j.doc_no}</span>
-                          <span className="block text-xs text-zinc-500">
+                          <span className="block text-xs text-muted">
                             {j.tools?.brand} {j.tools?.model}
                           </span>
                         </Link>
@@ -349,7 +350,7 @@ export default async function ChatPage({
           </div>
         </section>
       ) : (
-        <section className="hidden flex-1 items-center justify-center bg-zinc-50 text-sm text-zinc-400 md:flex">
+        <section className="hidden flex-1 items-center justify-center bg-steel/50 text-sm text-zinc-400 md:flex">
           เลือกแชทจากรายชื่อด้านซ้าย
         </section>
       )}

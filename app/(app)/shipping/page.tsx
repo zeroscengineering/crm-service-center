@@ -26,9 +26,9 @@ type Row = Shipment & {
 };
 
 const TABS = [
-  { key: "list", label: "📦 รายการขนส่ง" },
-  { key: "customers", label: "👥 ลูกค้า × ขนส่ง" },
-  { key: "settings", label: "⚙️ ตั้งค่าขนส่ง" },
+  { key: "list", label: "รายการขนส่ง" },
+  { key: "customers", label: "ลูกค้า × ขนส่ง" },
+  { key: "settings", label: "ตั้งค่าขนส่ง" },
 ] as const;
 
 export default async function ShippingPage({
@@ -53,7 +53,7 @@ export default async function ShippingPage({
       <div className="mx-auto max-w-xl rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
         <p className="font-semibold">ยังไม่ได้สร้างตารางระบบขนส่ง</p>
         <p className="mt-1">
-          เปิด Supabase → SQL Editor → วางไฟล์ <code>supabase/migrations/0004_tags_shipping.sql</code> → Run แล้วรีเฟรชหน้านี้
+          เปิด Supabase › SQL Editor › วางไฟล์ <code>supabase/migrations/0004_tags_shipping.sql</code> › Run แล้วรีเฟรชหน้านี้
         </p>
       </div>
     );
@@ -62,12 +62,12 @@ export default async function ShippingPage({
   const carrierById = new Map(carriers.map((c) => [c.id, c]));
 
   const tabBar = (
-    <div className="flex flex-wrap gap-1 rounded-lg border border-zinc-200 bg-white p-1 text-sm">
+    <div className="flex flex-wrap gap-1 rounded-lg border border-line bg-white p-1 text-sm">
       {TABS.map((t) => (
         <Link
           key={t.key}
           href={`/shipping?tab=${t.key}`}
-          className={`rounded-md px-3 py-1.5 ${tab === t.key ? "bg-brand text-white" : "text-zinc-600 hover:bg-zinc-100"}`}
+          className={`rounded-md px-3 py-1.5 ${tab === t.key ? "bg-brand text-white" : "text-muted hover:bg-steel"}`}
         >
           {t.label}
         </Link>
@@ -80,18 +80,18 @@ export default async function ShippingPage({
     return (
       <div className="space-y-6">
         <header className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">ขนส่ง</h1>
+          <h1 className="text-[26px] font-semibold leading-tight tracking-tight">ขนส่ง</h1>
           {tabBar}
         </header>
-        <section className="rounded-xl border border-zinc-200 bg-white p-5">
+        <section className="panel p-5">
           <h2 className="font-semibold">รายชื่อขนส่ง</h2>
-          <p className="mb-3 text-xs text-zinc-500">
+          <p className="mb-3 text-xs text-muted">
             ลิงก์ติดตาม: ใส่ <code>{"{tracking}"}</code> ตรงตำแหน่งเลขพัสดุ ระบบจะสร้างลิงก์ให้อัตโนมัติ (ส่งให้ลูกค้าทาง LINE ได้) ·
             “ลำดับ” น้อย = แสดงก่อน
           </p>
           {canEdit ? (
             <>
-              <div className="hidden gap-2 pb-1 text-xs text-zinc-500 sm:grid sm:grid-cols-[2fr_3fr_1.2fr_60px_auto_auto]">
+              <div className="hidden gap-2 pb-1 text-xs text-muted sm:grid sm:grid-cols-[2fr_3fr_1.2fr_60px_auto_auto]">
                 <span>ชื่อ</span>
                 <span>ลิงก์ติดตามพัสดุ</span>
                 <span>เบอร์โทร</span>
@@ -108,7 +108,7 @@ export default async function ShippingPage({
               </div>
             </>
           ) : (
-            <ul className="divide-y divide-zinc-100 text-sm">
+            <ul className="divide-y divide-line/70 text-sm">
               {carriers.map((c) => (
                 <li key={c.id} className="py-2">
                   {c.name} {!c.active && <span className="text-xs text-zinc-400">(ปิดใช้)</span>}
@@ -148,7 +148,7 @@ export default async function ShippingPage({
     return (
       <div className="space-y-6">
         <header className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">ขนส่ง</h1>
+          <h1 className="text-[26px] font-semibold leading-tight tracking-tight">ขนส่ง</h1>
           {tabBar}
         </header>
 
@@ -183,20 +183,20 @@ export default async function ShippingPage({
             name="q"
             defaultValue={sp.q}
             placeholder="ค้นหาชื่อ / เบอร์โทร"
-            className="w-full max-w-sm rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+            className="w-full max-w-sm rounded-lg border border-line bg-white px-3 py-2 text-sm"
           />
         </form>
 
-        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+        <div className="overflow-x-auto panel">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-left text-zinc-500">
+            <thead className="border-b border-line bg-steel/60 text-left text-[13px] text-muted">
               <tr>
                 <th className="px-4 py-2 font-medium">ลูกค้า</th>
                 <th className="px-4 py-2 font-medium">เบอร์โทร</th>
                 <th className="px-4 py-2 font-medium">ขนส่งที่ใช้ประจำ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-line/70">
               {customers.map((c) => (
                 <tr key={c.id}>
                   <td className="px-4 py-2">
@@ -242,9 +242,9 @@ export default async function ShippingPage({
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">ขนส่ง</h1>
-          <p className="text-sm text-zinc-500">
-            รอส่ง {pendingRows?.length ?? 0} รายการ · เพิ่มรายการได้จากหน้ารายละเอียดงานซ่อม (การ์ด “🚚 ขนส่ง”)
+          <h1 className="text-[26px] font-semibold leading-tight tracking-tight">ขนส่ง</h1>
+          <p className="text-sm text-muted">
+            รอส่ง {pendingRows?.length ?? 0} รายการ · เพิ่มรายการได้จากหน้ารายละเอียดงานซ่อม (การ์ด “ขนส่ง”)
           </p>
         </div>
         {tabBar}
@@ -252,7 +252,7 @@ export default async function ShippingPage({
 
       <form className="flex flex-wrap gap-2">
         <input type="hidden" name="tab" value="list" />
-        <select name="status" defaultValue={sp.status ?? ""} className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm">
+        <select name="status" defaultValue={sp.status ?? ""} className="rounded-lg border border-line bg-white px-3 py-2 text-sm">
           <option value="">ทุกสถานะ</option>
           {(Object.keys(SHIPMENT_STATUS_LABEL) as ShipmentStatus[]).map((s) => (
             <option key={s} value={s}>
@@ -260,12 +260,12 @@ export default async function ShippingPage({
             </option>
           ))}
         </select>
-        <select name="dir" defaultValue={sp.dir ?? ""} className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm">
+        <select name="dir" defaultValue={sp.dir ?? ""} className="rounded-lg border border-line bg-white px-3 py-2 text-sm">
           <option value="">ขาเข้า + ขาออก</option>
           <option value="outbound">{DIRECTION_LABEL.outbound}</option>
           <option value="inbound">{DIRECTION_LABEL.inbound}</option>
         </select>
-        <select name="carrier" defaultValue={sp.carrier ?? ""} className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm">
+        <select name="carrier" defaultValue={sp.carrier ?? ""} className="rounded-lg border border-line bg-white px-3 py-2 text-sm">
           <option value="">ทุกขนส่ง</option>
           {carriers.map((c) => (
             <option key={c.id} value={c.id}>
@@ -273,12 +273,12 @@ export default async function ShippingPage({
             </option>
           ))}
         </select>
-        <button className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm hover:bg-zinc-100">กรอง</button>
+        <button className="btn btn-secondary">กรอง</button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+      <div className="overflow-x-auto panel">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-zinc-500">
+          <thead className="border-b border-line bg-steel/60 text-left text-[13px] text-muted">
             <tr>
               <th className="px-3 py-2 font-medium">วันที่</th>
               <th className="px-3 py-2 font-medium">งานซ่อม</th>
@@ -291,7 +291,7 @@ export default async function ShippingPage({
               {canEdit && <th className="px-3 py-2" />}
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-line/70">
             {rows.map((r) => {
               const c = r.carrier_id ? carrierById.get(r.carrier_id) : null;
               const link = trackingLink(c, r.tracking_no);
@@ -300,14 +300,14 @@ export default async function ShippingPage({
                   <td className="px-3 py-2 whitespace-nowrap">{formatDate(r.shipped_at ?? r.created_at)}</td>
                   <td className="px-3 py-2">
                     {r.repair_jobs && (
-                      <Link href={`/jobs/${r.repair_jobs.id}`} className="font-mono font-semibold text-brand hover:underline">
+                      <Link href={`/jobs/${r.repair_jobs.id}`} className="doc-tag hover:border-graphite/60">
                         {r.repair_jobs.doc_no}
                       </Link>
                     )}
                   </td>
                   <td className="px-3 py-2">
                     {r.customers?.name}
-                    <span className="block text-xs text-zinc-500">{formatPhone(r.customers?.phone)}</span>
+                    <span className="block text-xs text-muted">{formatPhone(r.customers?.phone)}</span>
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap text-xs">{DIRECTION_LABEL[r.direction]}</td>
                   <td className="px-3 py-2">
@@ -315,9 +315,8 @@ export default async function ShippingPage({
                     {r.tracking_no && (
                       <span className="block font-mono text-xs">
                         {link ? (
-                          <a href={link} target="_blank" rel="noreferrer" className="text-brand hover:underline">
-                            {r.tracking_no} ↗
-                          </a>
+                          <a href={link} target="_blank" rel="noreferrer" className="font-medium text-brand hover:underline">
+                            {r.tracking_no}                           </a>
                         ) : (
                           r.tracking_no
                         )}

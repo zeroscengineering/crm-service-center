@@ -38,8 +38,8 @@ export const SHIPMENT_STATUS_COLOR: Record<ShipmentStatus, string> = {
 };
 
 export const DIRECTION_LABEL: Record<ShipmentDirection, string> = {
-  inbound: "📥 ลูกค้าส่งเข้า",
-  outbound: "📤 ร้านส่งคืน",
+  inbound: "ลูกค้าส่งเข้า",
+  outbound: "ร้านส่งคืน",
 };
 
 export function trackingLink(carrier: Pick<Carrier, "tracking_url"> | null | undefined, trackingNo: string | null) {

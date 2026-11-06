@@ -27,8 +27,8 @@ export default async function NewJobPage({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <header>
-        <h1 className="text-2xl font-bold">รับแจ้งซ่อมใหม่</h1>
-        <p className="text-sm text-zinc-500">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">รับแจ้งซ่อมใหม่</h1>
+        <p className="text-sm text-muted">
           {sp.line ? "สร้างดีลจากแชท LINE — บันทึกแล้วแชทนี้จะผูกกับลูกค้าอัตโนมัติ · " : ""}
           บันทึกแล้วระบบจะเปิดใบรับเครื่องให้พิมพ์ทันที
         </p>

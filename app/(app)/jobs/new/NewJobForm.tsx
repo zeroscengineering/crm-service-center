@@ -14,7 +14,7 @@ import type { CustomerWithTools } from "@/lib/types";
 type Option = { id: string; name: string };
 
 const input =
-  "mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20";
+  "mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 outline-none focus:border-graphite focus:ring-2 focus:ring-graphite/10";
 
 function Field({
   label,
@@ -43,7 +43,7 @@ function Field({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white p-5">
+    <section className="panel p-5">
       <h2 className="mb-4 font-semibold">{title}</h2>
       {children}
     </section>
@@ -172,11 +172,11 @@ export default function NewJobForm({
           <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg bg-emerald-50 p-4 ring-1 ring-emerald-200">
             <div>
               <p className="font-semibold">{customer.name}</p>
-              <p className="text-sm text-zinc-600">
+              <p className="text-sm text-muted">
                 {formatPhone(customer.phone)}
                 {customer.line_id && ` · LINE: ${customer.line_id}`}
               </p>
-              {customer.address && <p className="text-sm text-zinc-500">{customer.address}</p>}
+              {customer.address && <p className="text-sm text-muted">{customer.address}</p>}
             </div>
             <button type="button" onClick={clearCustomer} className="text-sm text-brand hover:underline">
               เปลี่ยนลูกค้า
@@ -195,17 +195,17 @@ export default function NewJobForm({
                 />
               </Field>
               {(results.length > 0 || searching) && (
-                <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg">
-                  {searching && <li className="px-3 py-2 text-sm text-zinc-500">กำลังค้นหา...</li>}
+                <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-line bg-white shadow-lg">
+                  {searching && <li className="px-3 py-2 text-sm text-muted">กำลังค้นหา...</li>}
                   {results.map((c) => (
                     <li key={c.id}>
                       <button
                         type="button"
                         onClick={() => pickCustomer(c)}
-                        className="w-full px-3 py-2 text-left hover:bg-zinc-50"
+                        className="w-full px-3 py-2 text-left hover:bg-steel/50"
                       >
                         <span className="font-medium">{c.name}</span>{" "}
-                        <span className="text-sm text-zinc-500">
+                        <span className="text-sm text-muted">
                           {formatPhone(c.phone)} · {c.tools.length} เครื่อง
                         </span>
                       </button>
@@ -214,7 +214,7 @@ export default function NewJobForm({
                 </ul>
               )}
             </div>
-            <p className="text-xs text-zinc-500">ไม่พบ? กรอกข้อมูลลูกค้าใหม่ด้านล่าง</p>
+            <p className="text-xs text-muted">ไม่พบ? กรอกข้อมูลลูกค้าใหม่ด้านล่าง</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="ชื่อลูกค้า" required error={fe.customer_name}>
                 <input name="customer_name" defaultValue={defaultName} className={input} />
@@ -237,15 +237,15 @@ export default function NewJobForm({
       <Section title="3. เครื่องมือที่รับซ่อม">
         {customer && customer.tools.length > 0 && (
           <div className="mb-4 space-y-2">
-            <p className="text-sm text-zinc-600">เครื่องที่ลูกค้าเคยนำมา:</p>
+            <p className="text-sm text-muted">เครื่องที่ลูกค้าเคยนำมา:</p>
             {customer.tools.map((t) => (
-              <label key={t.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 has-[:checked]:border-brand has-[:checked]:bg-brand/5">
+              <label key={t.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 has-[:checked]:border-graphite has-[:checked]:bg-graphite/5">
                 <input type="radio" checked={toolId === t.id} onChange={() => setToolId(t.id)} />
                 <span className="font-medium">{t.brand}</span> {t.model}
-                {t.serial_number && <span className="font-mono text-xs text-zinc-500">S/N {t.serial_number}</span>}
+                {t.serial_number && <span className="font-mono text-xs text-muted">S/N {t.serial_number}</span>}
               </label>
             ))}
-            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-zinc-300 px-3 py-2 has-[:checked]:border-brand has-[:checked]:bg-brand/5">
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-line px-3 py-2 has-[:checked]:border-graphite has-[:checked]:bg-graphite/5">
               <input type="radio" checked={toolId === ""} onChange={() => setToolId("")} />
               + เครื่องใหม่
             </label>
@@ -287,7 +287,7 @@ export default function NewJobForm({
             <p className="text-sm font-medium text-zinc-700">สถานะประกัน</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {Object.entries(WARRANTY_LABEL).map(([value, label]) => (
-                <label key={value} className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand/5">
+                <label key={value} className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-sm has-[:checked]:border-graphite has-[:checked]:bg-graphite/5">
                   <input type="radio" name="warranty" value={value} defaultChecked={value === "unknown"} />
                   {label}
                 </label>
@@ -307,7 +307,7 @@ export default function NewJobForm({
             otherName="documents_other"
             options={DOCUMENT_OPTIONS}
           />
-          <p className="-mt-2 text-xs text-zinc-500">
+          <p className="-mt-2 text-xs text-muted">
             อัปโหลดรูปเครื่องและไฟล์เอกสาร ได้ในหน้ารายละเอียดงานหลังบันทึก
           </p>
 
@@ -325,7 +325,7 @@ export default function NewJobForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-brand px-6 py-2.5 font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+          className="btn btn-primary disabled:opacity-60"
         >
           {pending ? "กำลังบันทึก..." : "บันทึกและพิมพ์ใบรับเครื่อง"}
         </button>
@@ -350,7 +350,7 @@ function CheckGroup({
       <p className="text-sm font-medium text-zinc-700">{title}</p>
       <div className="mt-2 flex flex-wrap gap-2">
         {options.map((o) => (
-          <label key={o} className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand/5">
+          <label key={o} className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-sm has-[:checked]:border-graphite has-[:checked]:bg-graphite/5">
             <input type="checkbox" name={name} value={o} />
             {o}
           </label>

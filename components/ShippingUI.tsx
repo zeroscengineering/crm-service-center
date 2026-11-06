@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { MessageCircle } from "lucide-react";
 import {
   addShipment,
   deleteCarrier,
@@ -22,7 +23,7 @@ import {
 } from "@/lib/shipping";
 
 const input =
-  "w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20";
+  "w-full rounded-lg border border-line bg-white px-3 py-1.5 text-sm outline-none focus:border-graphite focus:ring-2 focus:ring-graphite/10";
 
 function submitter(action: (fd: FormData) => void) {
   return (e: React.FormEvent<HTMLFormElement>) => {
@@ -61,7 +62,7 @@ export function CarrierForm({ carrier }: { carrier?: Carrier }) {
         <input type="checkbox" name="active" defaultChecked={carrier?.active ?? true} /> ใช้งาน
       </label>
       <div className="flex items-center gap-2">
-        <button disabled={pending} className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60">
+        <button disabled={pending} className="btn btn-dark btn-sm disabled:opacity-60">
           {carrier ? "บันทึก" : "+ เพิ่ม"}
         </button>
         {carrier && (
@@ -77,7 +78,7 @@ export function CarrierForm({ carrier }: { carrier?: Carrier }) {
           </button>
         )}
         {state.error && <span className="text-xs text-rose-600">{state.error}</span>}
-        {state.ok && <span className="text-xs text-emerald-600">✓</span>}
+        {state.ok && <span className="text-xs text-emerald-600"></span>}
       </div>
     </form>
   );
@@ -107,7 +108,7 @@ export function CustomerCarrierSelect({
         setV(e.target.value);
         start(async () => void (await setCustomerCarrier(customerId, e.target.value || null)));
       }}
-      className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm"
+      className="rounded-lg border border-line bg-white px-2 py-1 text-sm"
     >
       <option value="">— ยังไม่ระบุ —</option>
       {carriers.map((c) => (
@@ -144,7 +145,7 @@ export function SenderNameEditor({ shipment, canEdit }: { shipment: Shipment; ca
           setSaved(false);
         }}
         placeholder="ใส่ชื่อคนส่ง"
-        className="w-36 rounded-md border border-zinc-200 px-2 py-1 text-sm"
+        className="w-36 rounded-md border border-line px-2 py-1 text-sm"
       />
       {dirty && (
         <button
@@ -160,7 +161,7 @@ export function SenderNameEditor({ shipment, canEdit }: { shipment: Shipment; ca
           บันทึก
         </button>
       )}
-      {saved && !dirty && <span className="text-xs text-emerald-600">✓</span>}
+      {saved && !dirty && <span className="text-xs text-emerald-600"></span>}
     </div>
   );
 }
@@ -195,12 +196,12 @@ export function ShipmentActions({ shipment, canNotify }: { shipment: Shipment; c
           onClick={() =>
             start(async () => {
               const r = await notifyShipment(shipment.id);
-              setMsg(r.error ? { ok: false, t: r.error } : { ok: true, t: r.info ?? "✓" });
+              setMsg(r.error ? { ok: false, t: r.error } : { ok: true, t: r.info ?? "" });
             })
           }
           className="rounded-md bg-[#06C755] px-2 py-1 font-medium text-white disabled:opacity-60"
         >
-          💬 แจ้งเลขพัสดุทาง LINE
+          <MessageCircle size={12} /> แจ้งเลขพัสดุทาง LINE
         </button>
       )}
       <button
@@ -246,13 +247,13 @@ export function JobShippingPanel({
 
   return (
     <div className="space-y-3">
-      {defaultCarrier && <p className="text-xs text-zinc-500">ขนส่งที่ลูกค้าใช้ประจำ: {defaultCarrier.name}</p>}
+      {defaultCarrier && <p className="text-xs text-muted">ขนส่งที่ลูกค้าใช้ประจำ: {defaultCarrier.name}</p>}
       <ul className="space-y-2">
         {shipments.map((s) => {
           const c = s.carrier_id ? byId.get(s.carrier_id) : null;
           const link = trackingLink(c, s.tracking_no);
           return (
-            <li key={s.id} className="space-y-1.5 rounded-lg border border-zinc-200 p-3 text-sm">
+            <li key={s.id} className="space-y-1.5 rounded-lg border border-line p-3 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-medium">
                   {DIRECTION_LABEL[s.direction]} · {c?.name ?? "ไม่ระบุขนส่ง"}
@@ -263,18 +264,17 @@ export function JobShippingPanel({
                 <p className="font-mono text-xs">
                   เลขพัสดุ:{" "}
                   {link ? (
-                    <a href={link} target="_blank" rel="noreferrer" className="text-brand hover:underline">
-                      {s.tracking_no} ↗
-                    </a>
+                    <a href={link} target="_blank" rel="noreferrer" className="font-medium text-brand hover:underline">
+                      {s.tracking_no}                     </a>
                   ) : (
                     s.tracking_no
                   )}
                 </p>
               )}
-              <div className="flex items-center gap-2 text-xs text-zinc-600">
+              <div className="flex items-center gap-2 text-xs text-muted">
                 คนส่ง: <SenderNameEditor shipment={s} canEdit={canEdit} />
               </div>
-              {s.note && <p className="text-xs text-zinc-500">{s.note}</p>}
+              {s.note && <p className="text-xs text-muted">{s.note}</p>}
               {canEdit && <ShipmentActions shipment={s} canNotify />}
             </li>
           );
@@ -284,7 +284,7 @@ export function JobShippingPanel({
 
       {canEdit &&
         (open ? (
-          <form ref={ref} onSubmit={submitter(action)} className="space-y-2 rounded-lg bg-zinc-50 p-3">
+          <form ref={ref} onSubmit={submitter(action)} className="space-y-2 rounded-lg bg-steel/50 p-3">
             <input type="hidden" name="repair_job_id" value={jobId} />
             <div className="grid grid-cols-2 gap-2">
               <select name="direction" defaultValue="outbound" className={input}>
@@ -315,7 +315,7 @@ export function JobShippingPanel({
               <button disabled={pending} className="rounded-lg bg-brand px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-60">
                 {pending ? "..." : "บันทึก"}
               </button>
-              <button type="button" onClick={() => setOpen(false)} className="text-sm text-zinc-500 hover:underline">
+              <button type="button" onClick={() => setOpen(false)} className="text-sm text-muted hover:underline">
                 ยกเลิก
               </button>
               {state.error && <span className="text-sm text-rose-600">{state.error}</span>}

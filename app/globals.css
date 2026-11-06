@@ -1,11 +1,119 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------
+   CRM-SERVICE CENTER — design tokens
+   graphite (โครง) · steel (พื้น) · signal red (การกระทำหลัก)
+   safety amber (สิ่งที่ต้องสนใจ) · line (เส้นแบ่ง)
+------------------------------------------------------------------- */
 @theme {
   --font-sans: var(--font-thai), ui-sans-serif, system-ui, sans-serif;
-  --color-brand: #c8102e;      /* แดงเครื่องมือช่าง */
-  --color-brand-dark: #9b0c23;
+  --font-mono: var(--font-mono-plex), ui-monospace, monospace;
+
+  --color-brand: #d7261e;
+  --color-brand-dark: #b01d16;
+  --color-graphite: #1f2328;
+  --color-graphite-2: #2b3036;
+  --color-steel: #eef0f2;
+  --color-line: #d9dde2;
+  --color-amber: #f2a900;
+  --color-ink: #1f2328;
+  --color-muted: #5f6670;
 }
 
-body {
-  @apply bg-zinc-50 text-zinc-900 antialiased;
+@layer base {
+  body {
+    @apply bg-steel text-ink antialiased;
+    font-feature-settings: "tnum" 1;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0ms !important;
+      animation-duration: 0ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* ปุ่ม */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-sm {
+    @apply px-2.5 py-1 text-xs;
+  }
+  .btn-primary {
+    @apply bg-brand text-white hover:bg-brand-dark;
+  }
+  .btn-dark {
+    @apply bg-graphite text-white hover:bg-graphite-2;
+  }
+  .btn-secondary {
+    @apply border border-line bg-white text-ink hover:bg-steel;
+  }
+  .btn-ghost {
+    @apply text-muted hover:bg-steel hover:text-ink;
+  }
+  .btn-danger {
+    @apply text-rose-700 hover:bg-rose-50;
+  }
+  .btn-line {
+    @apply bg-[#06C755] text-white hover:bg-[#05b34c];
+  }
+
+  /* ช่องกรอก */
+  .field {
+    @apply w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-zinc-400 focus:border-graphite focus:ring-2 focus:ring-graphite/10;
+  }
+  .field-label {
+    @apply mb-1 block text-[13px] font-medium text-muted;
+  }
+
+  /* แผง */
+  .panel {
+    @apply rounded-[10px] border border-line bg-white;
+  }
+  .panel-head {
+    @apply flex items-center justify-between gap-3 border-b border-line px-5 py-3.5;
+  }
+  .panel-title {
+    @apply text-[15px] font-semibold text-ink;
+  }
+  .panel-body {
+    @apply p-5;
+  }
+
+  /* ตาราง */
+  .data-table {
+    @apply w-full text-sm;
+  }
+  .data-table thead {
+    @apply border-b border-line bg-steel/60 text-left text-[13px] text-muted;
+  }
+  .data-table th {
+    @apply px-4 py-2.5 font-medium;
+  }
+  .data-table td {
+    @apply px-4 py-3;
+  }
+  .data-table tbody tr {
+    @apply border-b border-line/70 last:border-0;
+  }
+  .data-table tbody tr:hover {
+    @apply bg-steel/40;
+  }
+
+  /* ป้ายใบงาน: เลขที่เอกสารแบบป้ายแขวนเครื่องมือ */
+  .doc-tag {
+    @apply relative inline-flex items-center rounded-[4px] border border-graphite/25 bg-[#fbf7e9] py-0.5 pl-4 pr-2 font-mono text-[13px] font-semibold tracking-tight text-graphite;
+  }
+  .doc-tag::before {
+    content: "";
+    @apply absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full border border-graphite/40 bg-steel;
+  }
 }

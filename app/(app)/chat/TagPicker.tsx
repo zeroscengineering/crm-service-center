@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { Tag as TagIcon, X } from "lucide-react";
 import { createTag, deleteTag, toggleContactTag } from "./actions";
 
 export type Tag = { id: string; name: string; color: string };
@@ -51,18 +52,18 @@ export default function TagPicker({
       {canEdit && (
         <button
           onClick={() => setOpen((o) => !o)}
-          className="rounded-full border border-dashed border-zinc-300 px-2 py-0.5 text-xs text-zinc-500 hover:bg-zinc-50"
+          className="rounded-full border border-dashed border-line px-2 py-0.5 text-xs text-muted hover:bg-steel/50"
         >
-          🏷️ {chosen.length ? "แก้แท็ก" : "+ แท็ก"}
+          <TagIcon size={12} className="inline" /> {chosen.length ? "แก้แท็ก" : "เพิ่มแท็ก"}
         </button>
       )}
       {open && (
-        <div className="absolute left-0 top-full z-20 mt-1 w-64 rounded-xl border border-zinc-200 bg-white p-2 shadow-lg">
+        <div className="absolute left-0 top-full z-20 mt-1 w-64 panel p-2 shadow-lg">
           <ul className="max-h-56 overflow-y-auto">
             {allTags.map((t) => {
               const on = selected.includes(t.id);
               return (
-                <li key={t.id} className="group flex items-center gap-2 rounded-md px-2 py-1 hover:bg-zinc-50">
+                <li key={t.id} className="group flex items-center gap-2 rounded-md px-2 py-1 hover:bg-steel/50">
                   <label className="flex flex-1 cursor-pointer items-center gap-2 text-sm">
                     <input
                       type="checkbox"
@@ -79,7 +80,7 @@ export default function TagPicker({
                     }}
                     className="hidden text-xs text-zinc-400 hover:text-rose-600 group-hover:block"
                   >
-                    ✕
+                    <X size={14} />
                   </button>
                 </li>
               );
@@ -104,7 +105,7 @@ export default function TagPicker({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="สร้างแท็กใหม่…"
-              className="flex-1 rounded-md border border-zinc-300 px-2 py-1 text-sm"
+              className="flex-1 rounded-md border border-line px-2 py-1 text-sm"
             />
             <button disabled={pending || !name.trim()} className="rounded-md bg-zinc-800 px-2 text-xs text-white disabled:opacity-50">
               สร้าง

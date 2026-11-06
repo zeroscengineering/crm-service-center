@@ -80,13 +80,13 @@ export default async function PrintJobPage({
 
       <div className="mx-auto mb-4 flex max-w-[148mm] items-center justify-between print:hidden">
         <Link href={`/jobs/${job.id}`} className="text-sm text-zinc-600 hover:underline">
-          ← ไปหน้ารายละเอียดงาน
+          ไปหน้ารายละเอียดงาน
         </Link>
         <PrintButton autoPrint={sp.new === "1"} />
       </div>
       {sp.new === "1" && (
         <p className="mx-auto mb-4 max-w-[148mm] rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 ring-1 ring-emerald-200 print:hidden">
-          ✅ บันทึกงานซ่อม {job.doc_no} เรียบร้อยแล้ว
+          บันทึกงานซ่อม {job.doc_no} เรียบร้อยแล้ว
         </p>
       )}
 

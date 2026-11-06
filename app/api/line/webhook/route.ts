@@ -70,7 +70,7 @@ async function handleLink(ev: LineEvent, token: string, canReply: boolean, base:
 
   if (c.line_user_id !== userId) await linkContact(userId, c.id);
   await say(
-    `✅ เชื่อมการแจ้งเตือนเรียบร้อย\nงานซ่อมเลขที่ ${j.doc_no}\nสถานะปัจจุบัน: ${STATUS_LABEL[j.status]}\n\nทางร้านจะแจ้งความคืบหน้าทาง LINE นี้\nติดตามสถานะ: ${base}/track?doc=${encodeURIComponent(j.doc_no)}`,
+    `เชื่อมการแจ้งเตือนเรียบร้อย\nงานซ่อมเลขที่ ${j.doc_no}\nสถานะปัจจุบัน: ${STATUS_LABEL[j.status]}\n\nทางร้านจะแจ้งความคืบหน้าทาง LINE นี้\nติดตามสถานะ: ${base}/track?doc=${encodeURIComponent(j.doc_no)}`,
   );
 }
 
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "bad json" }, { status: 400 });
   }
 
-  // LINE รอคำตอบแค่ ~1-2 วินาที → ตอบ 200 ทันที แล้วทำงานต่อเบื้องหลัง
+  // LINE รอคำตอบแค่ ~1-2 วินาที ตอบ 200 ทันที แล้วทำงานต่อเบื้องหลัง
   if (events.length === 0) return NextResponse.json({ ok: true }); // คำขอ Verify จาก LINE
 
   const base = await siteUrl();
@@ -125,7 +125,7 @@ async function processEvents(
         replyText(
           cfg.access_token,
           ev.replyToken,
-          "ขอบคุณที่เพิ่มเพื่อน 🙏\nพิมพ์ “เลขที่เอกสาร” จากใบรับเครื่อง เพื่อรับแจ้งเตือนสถานะการซ่อมทาง LINE",
+          "ขอบคุณที่เพิ่มเพื่อน \nพิมพ์ “เลขที่เอกสาร” จากใบรับเครื่อง เพื่อรับแจ้งเตือนสถานะการซ่อมทาง LINE",
         ).catch(() => undefined),
       );
     }

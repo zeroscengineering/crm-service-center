@@ -11,12 +11,12 @@ export type InboundEvent = {
 };
 
 const TYPE_LABEL: Record<string, string> = {
-  image: "📷 รูปภาพ",
-  video: "🎬 วิดีโอ",
-  audio: "🎤 ข้อความเสียง",
-  file: "📎 ไฟล์",
-  location: "📍 ตำแหน่ง",
-  sticker: "😊 สติกเกอร์",
+  image: "รูปภาพ",
+  video: "วิดีโอ",
+  audio: "ข้อความเสียง",
+  file: "ไฟล์",
+  location: "ตำแหน่ง",
+  sticker: "สติกเกอร์",
 };
 
 export function previewText(type: string, text: string | null | undefined) {

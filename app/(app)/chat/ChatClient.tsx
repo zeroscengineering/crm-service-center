@@ -20,11 +20,11 @@ export type ChatMsg = {
 };
 
 const TYPE_LABEL: Record<string, string> = {
-  video: "🎬 วิดีโอ (เปิดดูใน LINE OA Manager)",
-  audio: "🎤 ข้อความเสียง (เปิดฟังใน LINE OA Manager)",
-  file: "📎 ไฟล์",
-  location: "📍 ตำแหน่ง",
-  sticker: "😊 สติกเกอร์",
+  video: "วิดีโอ (เปิดดูใน LINE OA Manager)",
+  audio: "ข้อความเสียง (เปิดฟังใน LINE OA Manager)",
+  file: "ไฟล์",
+  location: "ตำแหน่ง",
+  sticker: "สติกเกอร์",
 };
 
 function time(iso: string) {
@@ -104,7 +104,7 @@ export function Conversation({
                         <img src={`/api/chat/image/${m.id}`} alt="รูปจากลูกค้า" className="max-h-60 rounded-lg" loading="lazy" />
                       </a>
                     ) : (
-                      "📷 รูปภาพ"
+                      "รูปภาพ"
                     )
                   ) : m.msg_type === "text" ? (
                     <p className="whitespace-pre-wrap break-words">{m.text}</p>
@@ -115,7 +115,7 @@ export function Conversation({
                     </p>
                   )}
                 </div>
-                <span className="mt-0.5 px-1 text-[10px] text-zinc-500">
+                <span className="mt-0.5 px-1 text-[10px] text-muted">
                   {time(m.created_at)}
                   {m.status === "mock" && " · จำลอง (ไม่ได้ส่งจริง)"}
                   {m.status === "failed" && ` · ส่งไม่สำเร็จ ${m.error ?? ""}`}
@@ -128,7 +128,7 @@ export function Conversation({
       </div>
 
       {canReply ? (
-        <div className="border-t border-zinc-200 bg-white p-3">
+        <div className="border-t border-line bg-white p-3">
           {note && <p className={`mb-2 text-xs ${note.ok ? "text-amber-700" : "text-rose-600"}`}>{note.text}</p>}
           <div className="flex items-end gap-2">
             <textarea
@@ -142,7 +142,7 @@ export function Conversation({
               }}
               rows={2}
               placeholder="พิมพ์ข้อความ… (Enter = ส่ง, Shift+Enter = ขึ้นบรรทัดใหม่)"
-              className="flex-1 resize-none rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#06C755] focus:ring-2 focus:ring-[#06C755]/20"
+              className="flex-1 resize-none rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-[#06C755] focus:ring-2 focus:ring-[#06C755]/20"
             />
             <button
               onClick={send}
@@ -155,7 +155,7 @@ export function Conversation({
           {mode === "mock" && <p className="mt-1 text-[11px] text-amber-700">โหมดจำลอง: ข้อความจะยังไม่ถึงลูกค้า (เปลี่ยนเป็นส่งจริงในหน้าตั้งค่า)</p>}
         </div>
       ) : (
-        <p className="border-t border-zinc-200 bg-white p-3 text-center text-xs text-zinc-500">
+        <p className="border-t border-line bg-white p-3 text-center text-xs text-muted">
           {mode === null ? "ยังไม่ได้ตั้งค่า LINE" : "เฉพาะแอดมินเท่านั้นที่ตอบแชทได้"}
         </p>
       )}
@@ -199,9 +199,9 @@ export function LinkCustomer({
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="ค้นหาชื่อ / เบอร์โทร"
-        className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm"
+        className="w-full rounded-lg border border-line px-3 py-1.5 text-sm"
       />
-      <ul className="max-h-48 overflow-y-auto rounded-lg border border-zinc-200 empty:hidden">
+      <ul className="max-h-48 overflow-y-auto rounded-lg border border-line empty:hidden">
         {results.map((c) => (
           <li key={c.id}>
             <button
@@ -213,9 +213,9 @@ export function LinkCustomer({
                   setQ("");
                 })
               }
-              className="w-full px-3 py-1.5 text-left text-sm hover:bg-zinc-50"
+              className="w-full px-3 py-1.5 text-left text-sm hover:bg-steel/50"
             >
-              {c.name} <span className="text-xs text-zinc-500">{formatPhone(c.phone)}</span>
+              {c.name} <span className="text-xs text-muted">{formatPhone(c.phone)}</span>
             </button>
           </li>
         ))}
@@ -235,7 +235,7 @@ export function LinkCustomer({
             ยกเลิกการผูก
           </button>
         )}
-        <button onClick={() => setOpen(false)} className="text-zinc-500 hover:underline">
+        <button onClick={() => setOpen(false)} className="text-muted hover:underline">
           ปิด
         </button>
         <Link href="/jobs/new" className="ml-auto text-brand hover:underline">

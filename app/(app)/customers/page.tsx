@@ -33,8 +33,8 @@ export default async function CustomersPage({
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-bold">ลูกค้า & เครื่องมือ</h1>
-        <p className="text-sm text-zinc-500">ลูกค้าใหม่จะถูกสร้างอัตโนมัติจากฟอร์มรับแจ้งซ่อม</p>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">ลูกค้า & เครื่องมือ</h1>
+        <p className="text-sm text-muted">ลูกค้าใหม่จะถูกสร้างอัตโนมัติจากฟอร์มรับแจ้งซ่อม</p>
       </header>
 
       <form>
@@ -42,13 +42,13 @@ export default async function CustomersPage({
           name="q"
           defaultValue={q}
           placeholder="ค้นหาชื่อ / เบอร์โทร / LINE ID"
-          className="w-full max-w-sm rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+          className="w-full max-w-sm rounded-lg border border-line bg-white px-3 py-2 text-sm"
         />
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+      <div className="overflow-x-auto panel">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-zinc-500">
+          <thead className="border-b border-line bg-steel/60 text-left text-[13px] text-muted">
             <tr>
               <th className="px-4 py-2 font-medium">ชื่อ</th>
               <th className="px-4 py-2 font-medium">เบอร์โทร</th>
@@ -58,9 +58,9 @@ export default async function CustomersPage({
               <th className="px-4 py-2 font-medium">ลงทะเบียน</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-line/70">
             {rows.map((c) => (
-              <tr key={c.id} className="hover:bg-zinc-50">
+              <tr key={c.id} className="hover:bg-steel/50">
                 <td className="px-4 py-2">
                   <Link href={`/customers/${c.id}`} className="font-medium text-brand hover:underline">
                     {c.name}
@@ -75,7 +75,7 @@ export default async function CustomersPage({
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-zinc-500">
+                <td colSpan={6} className="px-4 py-10 text-center text-muted">
                   ไม่พบลูกค้า
                 </td>
               </tr>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft, MessageCircle, Printer, Truck } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
@@ -51,7 +52,7 @@ type Note = { id: string; body: string; created_at: string; profiles: { full_nam
 
 function Card({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white p-5">
+    <section className="panel p-5">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="font-semibold">{title}</h2>
         {action}
@@ -64,7 +65,7 @@ function Card({ title, action, children }: { title: string; action?: React.React
 function Info({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid grid-cols-[8rem_1fr] gap-2 py-1 text-sm">
-      <dt className="text-zinc-500">{label}</dt>
+      <dt className="text-muted">{label}</dt>
       <dd>{children || "-"}</dd>
     </div>
   );
@@ -121,29 +122,34 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const shippingReady = !carrierRes.error;
   const shipments = (shipRes.data ?? []) as Shipment[];
   const carriers = (carrierRes.data ?? []) as Carrier[];
-  let defaultCarrierId: string | null = null;
-  if (shippingReady && job.customers) {
-    const { data: cc } = await supabase.from("customers").select("default_carrier_id").eq("id", job.customers.id).maybeSingle();
-    defaultCarrierId = (cc?.default_carrier_id as string | null) ?? null;
-  }
-  const lineCfg = adminConfigured() ? await getLineConfig() : null;
-  const lineCtx = adminConfigured() ? await loadJobContext(id, await siteUrl()) : null;
+  const defaultCarrierId = ((custCarrier.data as { default_carrier_id?: string | null } | null)?.default_carrier_id ?? null) as
+    | string
+    | null;
+  const base = await siteUrl();
+  const [lineCfg, lineCtx, driveOk, custCarrier] = await Promise.all([
+    adminConfigured() ? getLineConfig() : Promise.resolve(null),
+    adminConfigured() ? loadJobContext(id, base) : Promise.resolve(null),
+    driveReady(),
+    !carrierRes.error && job.customers
+      ? supabase.from("customers").select("default_carrier_id").eq("id", job.customers.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
   const lineDefault = lineCtx ? buildStatusMessage(lineCtx.ctx) : "";
   const technicians = (staffRes.data ?? []).map((s) => ({ id: s.id as string, name: s.full_name as string }));
 
   return (
     <div className="space-y-6">
-      <Link href="/jobs" className="text-sm text-zinc-500 hover:underline">
-        ← กลับไป Pipeline
+      <Link href="/jobs" className="inline-flex items-center gap-1 text-sm text-muted hover:text-ink">
+        <ArrowLeft size={15} /> งานซ่อมทั้งหมด
       </Link>
 
-      <header className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-zinc-200 bg-white p-5">
+      <header className="flex flex-wrap items-start justify-between gap-4 panel p-5">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-mono text-2xl font-bold">{job.doc_no}</h1>
+            <h1 className="doc-tag py-1 pl-5 text-lg">{job.doc_no}</h1>
             <StatusBadge status={job.status} />
           </div>
-          <p className="mt-1 text-zinc-600">
+          <p className="mt-1 text-muted">
             {job.tools?.brand} {job.tools?.model} · {job.customers?.name}
           </p>
           <p className="text-xs text-zinc-400">
@@ -154,9 +160,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           {canEdit && <StatusControl jobId={job.id} status={job.status} />}
           <Link
             href={`/print/job/${job.id}`}
-            className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100"
+            className="btn btn-secondary btn-sm"
           >
-            🖨️ พิมพ์ใบรับเครื่อง
+            <Printer size={15} /> พิมพ์ใบรับเครื่อง
           </Link>
         </div>
       </header>
@@ -196,7 +202,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             )}
             <ul className="space-y-3">
               {notes.map((n) => (
-                <li key={n.id} className="rounded-lg bg-zinc-50 px-4 py-3">
+                <li key={n.id} className="rounded-lg bg-steel/50 px-4 py-3">
                   <p className="whitespace-pre-wrap text-sm">{n.body}</p>
                   <p className="mt-1 text-xs text-zinc-400">
                     {n.profiles?.full_name ?? "-"} · {formatDateTime(n.created_at)}
@@ -208,7 +214,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           </Card>
 
           <Card title={`รูปภาพ & เอกสาร (${files.length})`}>
-            <FileGallery jobId={job.id} files={files} canEdit={canEdit} configured={await driveReady()} />
+            <FileGallery jobId={job.id} files={files} canEdit={canEdit} configured={driveOk} />
           </Card>
         </div>
 
@@ -227,18 +233,18 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               <Info label="ชื่อ">{job.customers?.name}</Info>
               <Info label="โทร">
                 {job.customers?.phone && (
-                  <a href={`tel:${job.customers.phone}`} className="text-brand hover:underline">
+                  <a href={`tel:${job.customers.phone}`} className="font-medium text-brand hover:underline">
                     {formatPhone(job.customers.phone)}
                   </a>
                 )}
               </Info>
               <Info label="LINE ID">{job.customers?.line_id}</Info>
-              <Info label="แจ้งเตือน LINE">{job.customers?.line_user_id ? "เชื่อมแล้ว ✅" : "ยังไม่เชื่อม"}</Info>
+              <Info label="แจ้งเตือน LINE">{job.customers?.line_user_id ? "เชื่อมแล้ว " : "ยังไม่เชื่อม"}</Info>
               <Info label="ที่อยู่">{job.customers?.address}</Info>
             </dl>
           </Card>
 
-          <Card title="💬 แจ้งลูกค้าทาง LINE">
+          <Card title={<><MessageCircle size={16} className="text-[#06A846]" /> แจ้งลูกค้าทาง LINE</>}>
             <LinePanel
               jobId={job.id}
               defaultText={lineDefault}
@@ -250,7 +256,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             />
           </Card>
 
-          <Card title={`🚚 ขนส่ง (${shipments.length})`}>
+          <Card title={<><Truck size={16} className="text-muted" /> ขนส่ง ({shipments.length})</>}>
             {shippingReady ? (
               <JobShippingPanel
                 jobId={job.id}
@@ -260,7 +266,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                 canEdit={canEdit}
               />
             ) : (
-              <p className="text-xs text-zinc-500">รัน SQL 0004_tags_shipping.sql ก่อนเพื่อใช้ระบบขนส่ง</p>
+              <p className="text-xs text-muted">รัน SQL 0004_tags_shipping.sql ก่อนเพื่อใช้ระบบขนส่ง</p>
             )}
           </Card>
 
@@ -275,7 +281,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           </Card>
 
           <Card title="ไทม์ไลน์สถานะ">
-            <ol className="relative space-y-4 border-l-2 border-zinc-200 pl-4">
+            <ol className="relative space-y-4 border-l-2 border-line pl-4">
               {history.map((h, i) => (
                 <li key={h.id} className="relative">
                   <span

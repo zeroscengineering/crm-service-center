@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Circle, CircleCheck, HardDrive, MessageCircle } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { adminConfigured } from "@/lib/supabase/admin";
@@ -41,10 +42,14 @@ function mb(bytes: number) {
 function Check({ ok, label, hint }: { ok: boolean; label: string; hint?: string }) {
   return (
     <li className="flex gap-2 text-sm">
-      <span>{ok ? "✅" : "⬜"}</span>
+      {ok ? (
+        <CircleCheck size={18} className="mt-0.5 shrink-0 text-emerald-600" />
+      ) : (
+        <Circle size={18} className="mt-0.5 shrink-0 text-zinc-300" />
+      )}
       <span>
-        <span className={ok ? "text-zinc-500 line-through" : "font-medium"}>{label}</span>
-        {!ok && hint && <span className="block text-xs text-zinc-500">{hint}</span>}
+        <span className={ok ? "text-muted line-through" : "font-medium"}>{label}</span>
+        {!ok && hint && <span className="block text-xs text-muted">{hint}</span>}
       </span>
     </li>
   );
@@ -52,10 +57,10 @@ function Check({ ok, label, hint }: { ok: boolean; label: string; hint?: string 
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-lg bg-zinc-50 p-4">
-      <p className="text-xs text-zinc-500">{label}</p>
+    <div className="rounded-lg bg-steel/50 p-4">
+      <p className="text-xs text-muted">{label}</p>
       <p className="mt-1 text-2xl font-bold">{value}</p>
-      {sub && <p className="text-xs text-zinc-500">{sub}</p>}
+      {sub && <p className="text-xs text-muted">{sub}</p>}
     </div>
   );
 }
@@ -135,29 +140,29 @@ export default async function SettingsPage({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <header>
-        <h1 className="text-2xl font-bold">ตั้งค่า</h1>
-        <p className="text-sm text-zinc-500">การเชื่อมต่อบริการภายนอก (เฉพาะแอดมิน)</p>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">ตั้งค่า</h1>
+        <p className="text-sm text-muted">การเชื่อมต่อบริการภายนอก (เฉพาะแอดมิน)</p>
       </header>
 
       {sp.drive === "connected" && (
         <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-200">
-          ✅ เชื่อมต่อ Google Drive สำเร็จ
+          เชื่อมต่อ Google Drive สำเร็จ
         </p>
       )}
       {sp.drive === "disconnected" && (
-        <p className="rounded-lg bg-zinc-100 px-4 py-3 text-sm text-zinc-700">ยกเลิกการเชื่อมต่อ Google Drive แล้ว</p>
+        <p className="rounded-lg bg-steel px-4 py-3 text-sm text-zinc-700">ยกเลิกการเชื่อมต่อ Google Drive แล้ว</p>
       )}
       {errorText && (
-        <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200">⚠️ {errorText}</p>
+        <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200">{errorText}</p>
       )}
 
-      <section className="rounded-xl border border-zinc-200 bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-5 py-4">
+      <section className="panel">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-xl">📁</span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-steel text-graphite"><HardDrive size={20} strokeWidth={1.75} /></span>
             <div>
               <h2 className="font-semibold">Google Drive</h2>
-              <p className="text-xs text-zinc-500">เก็บรูปก่อน/หลังซ่อม เอกสาร และสำรองข้อมูล (แชท ลูกค้า งานซ่อม)</p>
+              <p className="text-xs text-muted">เก็บรูปก่อน/หลังซ่อม เอกสาร และสำรองข้อมูล (แชท ลูกค้า งานซ่อม)</p>
             </div>
           </div>
           {conn ? (
@@ -165,7 +170,7 @@ export default async function SettingsPage({
               ● เชื่อมต่อแล้ว
             </span>
           ) : (
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">○ ยังไม่เชื่อมต่อ</span>
+            <span className="rounded-full bg-steel px-3 py-1 text-xs font-semibold text-muted">○ ยังไม่เชื่อมต่อ</span>
           )}
         </div>
 
@@ -178,42 +183,42 @@ export default async function SettingsPage({
                 <Check
                   ok={hasServiceKey}
                   label="ใส่ SUPABASE_SERVICE_ROLE_KEY ใน Vercel"
-                  hint="Supabase → Project Settings → API Keys → service_role (secret) — ใช้เก็บสิทธิ์ Google อย่างปลอดภัย"
+                  hint="Supabase › Project Settings › API Keys › Secret key — ใช้เก็บสิทธิ์ Google อย่างปลอดภัย"
                 />
                 <Check
                   ok={tableReady}
                   label="รัน SQL supabase/migrations/0002_app_settings.sql"
-                  hint="Supabase → SQL Editor → วางไฟล์ → Run"
+                  hint="Supabase › SQL Editor › วางไฟล์ › Run"
                 />
                 <Check
                   ok={hasClient}
                   label="ใส่ GOOGLE_CLIENT_ID และ GOOGLE_CLIENT_SECRET ใน Vercel"
-                  hint="ได้จาก Google Cloud Console → OAuth Client (ใส่ Redirect URI ด้านล่าง)"
+                  hint="ได้จาก Google Cloud Console OAuth Client (ใส่ Redirect URI ด้านล่าง)"
                 />
               </ul>
               <div>
                 <p className="mb-1 text-sm font-medium">Authorized redirect URI (คัดลอกไปใส่ใน Google Cloud)</p>
                 <CopyText text={redirectUri} />
               </div>
-              <p className="text-xs text-zinc-500">ใส่ค่าใน Vercel แล้วต้องกด Redeploy จึงจะมีผล</p>
+              <p className="text-xs text-muted">ใส่ค่าใน Vercel แล้วต้องกด Redeploy จึงจะมีผล</p>
             </div>
           )}
 
           {/* ---------- พร้อมเชื่อมต่อ ---------- */}
           {hasClient && hasServiceKey && tableReady && !conn && (
             <div className="flex flex-col items-start gap-3">
-              <p className="text-sm text-zinc-600">
+              <p className="text-sm text-muted">
                 กดปุ่มด้านล่าง แล้วเลือกบัญชี Google ที่ต้องการใช้เก็บไฟล์ ระบบจะสร้างโฟลเดอร์ “CRM-SERVICE CENTER” ให้อัตโนมัติ
                 และมองเห็นเฉพาะไฟล์ที่ระบบสร้างเท่านั้น
               </p>
               <a
                 href="/api/google/connect"
-                className="inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-2.5 font-semibold text-white hover:bg-brand-dark"
+                className="inline-flex items-center gap-2 btn btn-primary"
               >
                 เชื่อมต่อ Google Drive
               </a>
-              <p className="text-xs text-zinc-500">
-                ถ้าเจอหน้า “Google hasn’t verified this app” ให้กด Advanced → Go to CRM Service Center → ติ๊กอนุญาต Drive → Continue
+              <p className="text-xs text-muted">
+                ถ้าเจอหน้า “Google hasn’t verified this app” ให้กด Advanced Go to CRM Service Center ติ๊กอนุญาต Drive Continue
               </p>
             </div>
           )}
@@ -226,28 +231,27 @@ export default async function SettingsPage({
                   <p>
                     บัญชี: <span className="font-semibold">{about?.user?.emailAddress ?? conn.email}</span>
                   </p>
-                  <p className="text-xs text-zinc-500">เชื่อมต่อเมื่อ {formatDateTime(conn.connected_at)}</p>
+                  <p className="text-xs text-muted">เชื่อมต่อเมื่อ {formatDateTime(conn.connected_at)}</p>
                 </div>
                 {rootUrl && (
-                  <a href={rootUrl} target="_blank" rel="noreferrer" className="text-brand hover:underline">
-                    เปิดโฟลเดอร์ใน Google Drive ↗
-                  </a>
+                  <a href={rootUrl} target="_blank" rel="noreferrer" className="font-medium text-brand hover:underline">
+                    เปิดโฟลเดอร์ใน Google Drive                   </a>
                 )}
               </div>
 
               {driveError ? (
-                <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200">⚠️ {driveError}</p>
+                <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200">{driveError}</p>
               ) : (
                 <>
                   <div>
                     <div className="mb-1 flex justify-between text-sm">
                       <span>พื้นที่ Google Drive</span>
-                      <span className="text-zinc-500">
+                      <span className="text-muted">
                         {limit ? `ใช้ไป ${gb(usage)} / ${gb(limit)} GB` : `ใช้ไป ${gb(usage)} GB (ไม่จำกัด)`}
                       </span>
                     </div>
                     {limit > 0 && (
-                      <div className="h-3 overflow-hidden rounded-full bg-zinc-100">
+                      <div className="h-3 overflow-hidden rounded-full bg-steel">
                         <div
                           className={`h-full rounded-full ${pct > 90 ? "bg-rose-500" : pct > 75 ? "bg-amber-500" : "bg-emerald-500"}`}
                           style={{ width: `${pct}%` }}
@@ -271,9 +275,9 @@ export default async function SettingsPage({
                 </>
               )}
 
-              <div className="rounded-lg border border-zinc-200 p-4">
+              <div className="rounded-lg border border-line p-4">
                 <h3 className="font-medium">สำรองข้อมูล (แชท/โน้ต · ลูกค้า · งานซ่อม · อะไหล่)</h3>
-                <p className="mb-3 text-xs text-zinc-500">
+                <p className="mb-3 text-xs text-muted">
                   บันทึกเป็นไฟล์ JSON (ครบทุกตาราง) + CSV สรุปงานซ่อมพร้อมบันทึกแชท (เปิดใน Excel/Google Sheets ได้)
                   ลงโฟลเดอร์ “สำรองข้อมูล (Backups)” · ระบบสำรองอัตโนมัติทุกคืนเวลา 02:00 น.
                   {!process.env.CRON_SECRET && " (ต้องตั้ง CRON_SECRET ใน Vercel ก่อน)"}
@@ -283,20 +287,20 @@ export default async function SettingsPage({
                   {lastBackup ? (
                     <>
                       <span className="font-medium">{formatDateTime(lastBackup.at)}</span>{" "}
-                      <span className="text-zinc-500">
+                      <span className="text-muted">
                         ({lastBackup.trigger === "auto" ? "อัตโนมัติ" : "กดเอง"} · งานซ่อม {lastBackup.counts.repair_jobs ?? 0} · ลูกค้า{" "}
                         {lastBackup.counts.customers ?? 0} · บันทึก {lastBackup.counts.job_notes ?? 0})
                       </span>
                     </>
                   ) : (
-                    <span className="text-zinc-500">ยังไม่เคยสำรอง</span>
+                    <span className="text-muted">ยังไม่เคยสำรอง</span>
                   )}
                 </p>
                 <BackupButton />
               </div>
 
-              <div className="flex flex-wrap gap-3 border-t border-zinc-200 pt-4">
-                <a href="/api/google/connect" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100">
+              <div className="flex flex-wrap gap-3 border-t border-line pt-4">
+                <a href="/api/google/connect" className="rounded-lg border border-line px-4 py-2 text-sm hover:bg-steel">
                   เปลี่ยนบัญชี / เชื่อมต่อใหม่
                 </a>
                 <DisconnectButton />
@@ -306,13 +310,13 @@ export default async function SettingsPage({
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-5 py-4">
+      <section className="panel">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#06C755] text-xl text-white">💬</span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-[#06C755] text-white"><MessageCircle size={20} strokeWidth={1.75} /></span>
             <div>
               <h2 className="font-semibold">LINE OA</h2>
-              <p className="text-xs text-zinc-500">แจ้งเตือนสถานะการซ่อมไปยัง LINE ของลูกค้า</p>
+              <p className="text-xs text-muted">แจ้งเตือนสถานะการซ่อมไปยัง LINE ของลูกค้า</p>
             </div>
           </div>
           {lineReady(lineCfg) && !lineError ? (
@@ -326,27 +330,26 @@ export default async function SettingsPage({
               ● {lineCfg.mode === "live" ? "ส่งจริง" : "โหมดจำลอง"}
             </span>
           ) : (
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">○ ยังไม่ตั้งค่า</span>
+            <span className="rounded-full bg-steel px-3 py-1 text-xs font-semibold text-muted">○ ยังไม่ตั้งค่า</span>
           )}
         </div>
 
         <div className="space-y-5 p-5">
           {!(hasServiceKey && tableReady) ? (
-            <p className="text-sm text-zinc-500">ต้องตั้งค่า SUPABASE_SERVICE_ROLE_KEY และรัน SQL 0002 ก่อน (ดูการ์ด Google Drive ด้านบน)</p>
+            <p className="text-sm text-muted">ต้องตั้งค่า SUPABASE_SERVICE_ROLE_KEY และรัน SQL 0002 ก่อน (ดูการ์ด Google Drive ด้านบน)</p>
           ) : (
             <>
               {lineError && (
-                <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200">⚠️ {lineError}</p>
+                <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200">{lineError}</p>
               )}
               {bot && (
                 <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                   <p>
                     บัญชี: <span className="font-semibold">{bot.displayName}</span>{" "}
-                    <span className="font-mono text-zinc-500">{bot.basicId}</span>
+                    <span className="font-mono text-muted">{bot.basicId}</span>
                   </p>
-                  <a href={addFriendUrl(bot.basicId)} target="_blank" rel="noreferrer" className="text-brand hover:underline">
-                    ลิงก์เพิ่มเพื่อน ↗
-                  </a>
+                  <a href={addFriendUrl(bot.basicId)} target="_blank" rel="noreferrer" className="font-medium text-brand hover:underline">
+                    ลิงก์เพิ่มเพื่อน                   </a>
                 </div>
               )}
               <div className="grid gap-3 sm:grid-cols-3">
@@ -360,7 +363,7 @@ export default async function SettingsPage({
               </div>
 
               <div>
-                <p className="mb-1 text-sm font-medium">Webhook URL (นำไปใส่ใน LINE Developers → Messaging API)</p>
+                <p className="mb-1 text-sm font-medium">Webhook URL (นำไปใส่ใน LINE Developers › Messaging API)</p>
                 <CopyText text={webhookUrl} />
               </div>
 
@@ -375,9 +378,9 @@ export default async function SettingsPage({
                 }}
               />
 
-              <details className="rounded-lg bg-zinc-50 p-4 text-sm">
+              <details className="rounded-lg bg-steel/50 p-4 text-sm">
                 <summary className="cursor-pointer font-medium">วิธีที่ลูกค้าเชื่อม LINE</summary>
-                <ol className="mt-2 list-decimal space-y-1 pl-5 text-zinc-600">
+                <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted">
                   <li>ลูกค้าสแกน QR “แอด LINE” บนใบรับเครื่อง (หรือแอด OA เอง)</li>
                   <li>พิมพ์ “เลขที่เอกสาร” ในแชท เช่น SV-0001</li>
                   <li>ระบบจะผูก LINE กับลูกค้าคนนั้นอัตโนมัติ — ครั้งต่อไปแจ้งเตือนได้ทุกงานของลูกค้าคนนี้</li>

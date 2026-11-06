@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { FileText, Upload, X } from "lucide-react";
 
 export type JobFile = {
   id: string;
@@ -113,7 +114,7 @@ export default function FileGallery({
 
   return (
     <div className="space-y-5">
-      {busy && <p className="text-sm text-zinc-600">⏳ {busy}</p>}
+      {busy && <p className="text-sm text-muted">{busy}</p>}
       {error && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 ring-1 ring-rose-200">{error}</p>}
 
       {SECTIONS.map((s) => {
@@ -130,9 +131,9 @@ export default function FileGallery({
                     type="button"
                     disabled={!!busy}
                     onClick={() => inputs.current[s.key]?.click()}
-                    className="rounded-lg border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100 disabled:opacity-50"
+                    className="rounded-lg border border-line px-3 py-1 text-sm hover:bg-steel disabled:opacity-50"
                   >
-                    + อัปโหลด
+                    <Upload size={14} /> อัปโหลด
                   </button>
                   <input
                     ref={(el) => {
@@ -159,15 +160,15 @@ export default function FileGallery({
                     <button
                       type="button"
                       onClick={() => (isImage ? setPreview(f) : window.open(src, "_blank"))}
-                      className="block aspect-square w-full overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50"
+                      className="block aspect-square w-full overflow-hidden rounded-lg border border-line bg-steel/50"
                       title={f.file_name ?? ""}
                     >
                       {isImage ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={src} alt={f.file_name ?? ""} loading="lazy" className="h-full w-full object-cover" />
                       ) : (
-                        <span className="flex h-full flex-col items-center justify-center p-1 text-center text-xs text-zinc-600">
-                          <span className="text-2xl">📄</span>
+                        <span className="flex h-full flex-col items-center justify-center p-1 text-center text-xs text-muted">
+                          <FileText size={26} strokeWidth={1.5} className="text-muted" />
                           <span className="line-clamp-2 break-all">{f.file_name}</span>
                         </span>
                       )}
@@ -180,7 +181,7 @@ export default function FileGallery({
                         title="ลบ"
                         className="absolute right-1 top-1 hidden h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs text-white group-hover:flex"
                       >
-                        ✕
+                        <X size={12} />
                       </button>
                     )}
                     </div>

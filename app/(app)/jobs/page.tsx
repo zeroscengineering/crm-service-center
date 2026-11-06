@@ -29,13 +29,13 @@ export default async function JobsPage({
   const canEdit = profile.role === "admin";
 
   const tabs = (
-    <div className="inline-flex rounded-lg border border-zinc-300 bg-white p-0.5 text-sm">
-      <Link href="/jobs" className={`rounded-md px-3 py-1.5 ${isBoard ? "bg-brand text-white" : "text-zinc-600"}`}>
+    <div className="inline-flex rounded-lg border border-line bg-white p-0.5 text-sm">
+      <Link href="/jobs" className={`rounded-md px-3 py-1.5 ${isBoard ? "bg-brand text-white" : "text-muted"}`}>
         Pipeline
       </Link>
       <Link
         href="/jobs?view=list"
-        className={`rounded-md px-3 py-1.5 ${!isBoard ? "bg-brand text-white" : "text-zinc-600"}`}
+        className={`rounded-md px-3 py-1.5 ${!isBoard ? "bg-brand text-white" : "text-muted"}`}
       >
         ตาราง
       </Link>
@@ -45,13 +45,13 @@ export default async function JobsPage({
   const header = (
     <header className="flex flex-wrap items-end justify-between gap-3">
       <div className="flex flex-wrap items-center gap-4">
-        <h1 className="text-2xl font-bold">งานซ่อม</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">งานซ่อม</h1>
         {tabs}
       </div>
       {canEdit && (
         <Link
           href="/jobs/new"
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
+          className="btn btn-primary"
         >
           + รับแจ้งซ่อมใหม่
         </Link>
@@ -95,7 +95,7 @@ export default async function JobsPage({
     return (
       <div className="space-y-6">
         {header}
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted">
           คอลัมน์ “ส่งมอบเรียบร้อย” แสดงเฉพาะ 30 วันล่าสุด · งานที่ยกเลิกดูได้ในมุมมองตาราง
         </p>
         <KanbanBoard jobs={jobs} canEdit={canEdit} />
@@ -128,9 +128,9 @@ export default async function JobsPage({
           name="q"
           defaultValue={q}
           placeholder="ค้นหาเลขที่เอกสาร"
-          className="w-64 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+          className="w-64 rounded-lg border border-line bg-white px-3 py-2 text-sm"
         />
-        <select name="status" defaultValue={status} className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm">
+        <select name="status" defaultValue={status} className="rounded-lg border border-line bg-white px-3 py-2 text-sm">
           <option value="">ทุกสถานะ</option>
           {STATUSES.map((s) => (
             <option key={s} value={s}>
@@ -138,12 +138,12 @@ export default async function JobsPage({
             </option>
           ))}
         </select>
-        <button className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm hover:bg-zinc-100">ค้นหา</button>
+        <button className="btn btn-secondary">ค้นหา</button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+      <div className="overflow-x-auto panel">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-zinc-500">
+          <thead className="border-b border-line bg-steel/60 text-left text-[13px] text-muted">
             <tr>
               <th className="px-4 py-2 font-medium">เลขที่เอกสาร</th>
               <th className="px-4 py-2 font-medium">วันที่รับ</th>
@@ -154,7 +154,7 @@ export default async function JobsPage({
               <th className="px-4 py-2" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-line/70">
             {rows.map((j) => (
               <tr key={j.id}>
                 <td className="px-4 py-2 font-mono">
@@ -165,12 +165,12 @@ export default async function JobsPage({
                 <td className="px-4 py-2">{formatDate(j.received_at)}</td>
                 <td className="px-4 py-2">
                   {j.customers?.name}
-                  <span className="block text-xs text-zinc-500">{formatPhone(j.customers?.phone)}</span>
+                  <span className="block text-xs text-muted">{formatPhone(j.customers?.phone)}</span>
                 </td>
                 <td className="px-4 py-2">
                   {j.tools?.brand} {j.tools?.model}
                   {j.tools?.serial_number && (
-                    <span className="block font-mono text-xs text-zinc-500">S/N {j.tools.serial_number}</span>
+                    <span className="block font-mono text-xs text-muted">S/N {j.tools.serial_number}</span>
                   )}
                 </td>
                 <td className="px-4 py-2">{j.technician_name ?? "-"}</td>
@@ -178,7 +178,7 @@ export default async function JobsPage({
                   <StatusBadge status={j.status} />
                 </td>
                 <td className="px-4 py-2 text-right">
-                  <Link href={`/print/job/${j.id}`} className="text-zinc-500 hover:underline">
+                  <Link href={`/print/job/${j.id}`} className="text-muted hover:underline">
                     พิมพ์
                   </Link>
                 </td>
@@ -186,7 +186,7 @@ export default async function JobsPage({
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-zinc-500">
+                <td colSpan={7} className="px-4 py-10 text-center text-muted">
                   ไม่พบงานซ่อม
                 </td>
               </tr>

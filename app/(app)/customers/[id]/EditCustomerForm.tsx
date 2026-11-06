@@ -5,7 +5,7 @@ import { updateCustomer, type SaveState } from "./actions";
 import type { Customer } from "@/lib/types";
 
 const input =
-  "mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20";
+  "mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none focus:border-graphite focus:ring-2 focus:ring-graphite/10";
 
 export default function EditCustomerForm({ customer }: { customer: Customer }) {
   const [open, setOpen] = useState(false);
@@ -13,7 +13,7 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100">
+      <button onClick={() => setOpen(true)} className="btn btn-secondary btn-sm">
         แก้ไขข้อมูลลูกค้า
       </button>
     );
@@ -26,7 +26,7 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
         const fd = new FormData(e.currentTarget);
         startTransition(() => action(fd));
       }}
-      className="grid gap-3 rounded-xl border border-zinc-200 bg-white p-4 sm:grid-cols-2"
+      className="grid gap-3 panel p-4 sm:grid-cols-2"
     >
       <input type="hidden" name="id" value={customer.id} />
       <label className="text-sm">
@@ -49,7 +49,7 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
         <button disabled={pending} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
           {pending ? "กำลังบันทึก..." : "บันทึก"}
         </button>
-        <button type="button" onClick={() => setOpen(false)} className="text-sm text-zinc-500 hover:underline">
+        <button type="button" onClick={() => setOpen(false)} className="text-sm text-muted hover:underline">
           ปิด
         </button>
         {state.error && <span className="text-sm text-rose-600">{state.error}</span>}

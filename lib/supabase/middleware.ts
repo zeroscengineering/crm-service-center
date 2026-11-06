@@ -29,9 +29,9 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims ตรวจ JWT ในเครื่อง (ไม่ต้องยิงไป Supabase ทุกครั้งเหมือน getUser) และต่ออายุ session ให้
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? { id: data.claims.sub } : null;
 
   const path = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"));

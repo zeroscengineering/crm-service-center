@@ -5,7 +5,7 @@ import { saveLineSettings, type LineSaveState } from "./actions";
 import { STATUSES, STATUS_LABEL, type RepairStatus } from "@/lib/constants";
 
 const input =
-  "mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20";
+  "mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none focus:border-graphite focus:ring-2 focus:ring-graphite/10";
 
 export default function LineSettingsForm({
   initial,
@@ -57,12 +57,12 @@ export default function LineSettingsForm({
         <p className="text-sm font-medium">โหมดการส่ง</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {[
-            { v: "mock", l: "🧪 จำลอง (บันทึกอย่างเดียว ไม่ส่งจริง)" },
-            { v: "live", l: "📤 ส่งจริงถึงลูกค้า" },
+            { v: "mock", l: "จำลอง (บันทึกอย่างเดียว ไม่ส่งจริง)" },
+            { v: "live", l: "ส่งจริงถึงลูกค้า" },
           ].map((o) => (
             <label
               key={o.v}
-              className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand/5"
+              className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-sm has-[:checked]:border-graphite has-[:checked]:bg-graphite/5"
             >
               <input type="radio" name="mode" value={o.v} defaultChecked={initial.mode === o.v} />
               {o.l}
@@ -77,14 +77,14 @@ export default function LineSettingsForm({
           {STATUSES.map((s) => (
             <label
               key={s}
-              className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand/5"
+              className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-sm has-[:checked]:border-graphite has-[:checked]:bg-graphite/5"
             >
               <input type="checkbox" name="auto_statuses" value={s} defaultChecked={initial.auto_statuses.includes(s)} />
               {STATUS_LABEL[s]}
             </label>
           ))}
         </div>
-        <p className="mt-1 text-xs text-zinc-500">สถานะที่ไม่ติ๊ก ยังกดส่งเองได้จากหน้ารายละเอียดงาน</p>
+        <p className="mt-1 text-xs text-muted">สถานะที่ไม่ติ๊ก ยังกดส่งเองได้จากหน้ารายละเอียดงาน</p>
       </div>
 
       <label className="block text-sm">
@@ -96,7 +96,7 @@ export default function LineSettingsForm({
         <input type="checkbox" name="reply_on_link" defaultChecked={initial.reply_on_link} className="mt-1" />
         <span>
           ตอบกลับลูกค้าเมื่อพิมพ์เลขที่เอกสารแล้วเชื่อมสำเร็จ
-          <span className="block text-xs text-zinc-500">
+          <span className="block text-xs text-muted">
             ถ้าบอทเดิมตอบเลขที่เอกสารอยู่แล้ว ให้ปิดช่องนี้ (LINE ให้ตอบกลับได้ครั้งเดียวต่อข้อความ)
           </span>
         </span>
@@ -105,12 +105,12 @@ export default function LineSettingsForm({
       <div className="flex flex-wrap items-center gap-3">
         <button
           disabled={pending}
-          className="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+          className="btn btn-primary disabled:opacity-60"
         >
           {pending ? "กำลังตรวจสอบ..." : "บันทึกการตั้งค่า LINE"}
         </button>
         {state.error && <span className="text-sm text-rose-600">{state.error}</span>}
-        {state.ok && <span className="text-sm text-emerald-600">{state.info ?? "บันทึกแล้ว ✓"}</span>}
+        {state.ok && <span className="text-sm text-emerald-600">{state.info ?? "บันทึกแล้ว "}</span>}
       </div>
     </form>
   );

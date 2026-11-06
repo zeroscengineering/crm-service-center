@@ -153,7 +153,7 @@ export async function notifyShipment(id: string): Promise<ShipResult> {
   const link = trackingLink(sh.carriers, sh.tracking_no);
   const text =
     `เรียนคุณ${sh.repair_jobs?.customers?.name ?? ""}\n` +
-    `ทางร้านได้จัดส่งเครื่องงานซ่อมเลขที่ ${sh.repair_jobs?.doc_no ?? ""} แล้ว 📦\n` +
+    `ทางร้านได้จัดส่งเครื่องงานซ่อมเลขที่ ${sh.repair_jobs?.doc_no ?? ""} แล้ว \n` +
     `ขนส่ง: ${sh.carriers?.name ?? "-"}\n` +
     (sh.tracking_no ? `เลขพัสดุ: ${sh.tracking_no}\n` : "") +
     (link ? `ติดตามพัสดุ: ${link}` : "");
@@ -161,5 +161,5 @@ export async function notifyShipment(id: string): Promise<ShipResult> {
   const r = await sendJobMessage({ jobId: sh.repair_job_id, text: text.trim(), siteUrl: await siteUrl(), sentBy: a.profile.id });
   refresh(sh.repair_job_id);
   if (!r.ok) return { error: r.error ?? "ส่งไม่สำเร็จ" };
-  return { ok: true, info: r.mode === "live" ? "แจ้งลูกค้าทาง LINE แล้ว ✓" : "บันทึกแล้ว (โหมดจำลอง)" };
+  return { ok: true, info: r.mode === "live" ? "แจ้งลูกค้าทาง LINE แล้ว " : "บันทึกแล้ว (โหมดจำลอง)" };
 }

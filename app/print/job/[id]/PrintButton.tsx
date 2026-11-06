@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Printer } from "lucide-react";
 
 export default function PrintButton({ autoPrint }: { autoPrint?: boolean }) {
   useEffect(() => {
@@ -13,9 +14,9 @@ export default function PrintButton({ autoPrint }: { autoPrint?: boolean }) {
   return (
     <button
       onClick={() => window.print()}
-      className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
+      className="btn btn-primary"
     >
-      🖨️ พิมพ์ใบรับเครื่อง
+      <Printer size={16} /> พิมพ์ใบรับเครื่อง
     </button>
   );
 }

@@ -1,6 +1,6 @@
 /**
  * LINE Messaging API (ฝั่ง server เท่านั้น)
- * ค่าตั้งค่าเก็บในตาราง app_settings (key = "line") — กรอกผ่านหน้า ⚙️ ตั้งค่า
+ * ค่าตั้งค่าเก็บในตาราง app_settings (key = "line") — กรอกผ่านหน้า ตั้งค่า
  */
 import { createHmac, timingSafeEqual } from "crypto";
 import { adminConfigured, createAdminClient } from "@/lib/supabase/admin";
@@ -73,8 +73,13 @@ async function lineFetch(token: string, path: string, init: RequestInit = {}) {
 
 export type BotInfo = { basicId: string; displayName: string; pictureUrl?: string; premiumId?: string };
 
+const botCache = new Map<string, { v: BotInfo; at: number }>();
 export async function getBotInfo(token: string): Promise<BotInfo> {
-  return (await (await lineFetch(token, "/info")).json()) as BotInfo;
+  const hit = botCache.get(token);
+  if (hit && Date.now() - hit.at < 10 * 60_000) return hit.v;
+  const v = (await (await lineFetch(token, "/info")).json()) as BotInfo;
+  botCache.set(token, { v, at: Date.now() });
+  return v;
 }
 
 export async function getQuota(token: string) {
@@ -149,10 +154,10 @@ export function buildStatusMessage(c: JobMessageContext) {
       : "ช่างกำลังตรวจเช็กอาการและประเมินราคา/อะไหล่ ทางร้านจะแจ้งราคาให้ทราบเร็ว ๆ นี้",
     approved: "ได้รับการยืนยันซ่อมแล้ว ขอบคุณครับ/ค่ะ ช่างจะเริ่มดำเนินการโดยเร็ว",
     repairing: "ช่างกำลังดำเนินการซ่อมเครื่องของท่าน",
-    ready: `ซ่อมเสร็จเรียบร้อยแล้ว ✅ พร้อมรับเครื่องได้ที่ร้าน${
+    ready: `ซ่อมเสร็จเรียบร้อยแล้ว พร้อมรับเครื่องได้ที่ร้าน${
       c.grand_total > 0 ? `\nยอดชำระ ${formatMoney(c.grand_total)} บาท` : ""
     }\nกรุณานำใบรับเครื่องมาด้วย`,
-    delivered: "ส่งมอบเครื่องเรียบร้อยแล้ว ขอบคุณที่ใช้บริการครับ/ค่ะ 🙏",
+    delivered: "ส่งมอบเครื่องเรียบร้อยแล้ว ขอบคุณที่ใช้บริการครับ/ค่ะ ",
     cancelled: "งานซ่อมนี้ถูกยกเลิก กรุณาติดต่อร้านเพื่อรับเครื่องคืน",
   };
   return `${head}\n\n${body[c.status]}${c.status === "delivered" ? "" : foot}`;

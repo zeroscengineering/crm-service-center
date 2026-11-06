@@ -176,7 +176,7 @@ export async function createJob(_prev: CreateJobState, fd: FormData): Promise<Cr
   if (carrierId) {
     await supabase.from("customers").update({ default_carrier_id: carrierId }).eq("id", finalCustomerId);
   }
-  // สร้างจากแชท LINE → ผูกแชทกับลูกค้า
+  // สร้างจากแชท LINE ผูกแชทกับลูกค้า
   const lineUserId = str(fd, "line_user_id");
   if (lineUserId && adminConfigured()) {
     await linkContact(lineUserId, finalCustomerId).catch((e) => console.error("[link contact]", e));

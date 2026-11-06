@@ -57,7 +57,7 @@ export async function sendLineMessage(jobId: string, text: string): Promise<Acti
   const res = await sendJobMessage({ jobId, text: body, siteUrl: await siteUrl(), sentBy: ctx.profile.id });
   refresh(jobId);
   if (!res.ok) return { error: res.error ?? "ส่งไม่สำเร็จ" };
-  return { ok: true, info: res.mode === "live" ? "ส่งถึงลูกค้าแล้ว ✓" : "บันทึกแล้ว (โหมดจำลอง — ยังไม่ได้ส่งจริง)" };
+  return { ok: true, info: res.mode === "live" ? "ส่งถึงลูกค้าแล้ว " : "บันทึกแล้ว (โหมดจำลอง — ยังไม่ได้ส่งจริง)" };
 }
 
 // ---------- ข้อมูลงาน ----------

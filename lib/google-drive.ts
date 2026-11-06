@@ -50,6 +50,7 @@ export async function driveReady() {
 
 export function resetDriveCache() {
   connCache = null;
+  statsCache = null;
   tokenCache = null;
   folderCache.clear();
 }
@@ -168,7 +169,15 @@ export async function getAbout(token?: string): Promise<DriveAbout> {
 }
 
 /** นับไฟล์ที่แอปสร้าง (ไม่นับโฟลเดอร์) และขนาดรวม */
+let statsCache: { v: { count: number; bytes: number }; at: number } | null = null;
 export async function appFileStats() {
+  if (statsCache && Date.now() - statsCache.at < 120_000) return statsCache.v;
+  const v = await fetchFileStats();
+  statsCache = { v, at: Date.now() };
+  return v;
+}
+
+async function fetchFileStats() {
   let pageToken: string | undefined;
   let count = 0;
   let bytes = 0;

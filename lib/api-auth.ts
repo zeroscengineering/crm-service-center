@@ -4,9 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 /** ตรวจสิทธิ์ใน Route Handler — คืน supabase client หรือ response error */
 export async function apiAuth(requireAdmin: boolean) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: cd } = await supabase.auth.getClaims();
+  const user = cd?.claims?.sub ? { id: cd.claims.sub, email: (cd.claims.email as string | undefined) ?? null } : null;
   if (!user) return { res: NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 }) } as const;
 
   if (requireAdmin) {

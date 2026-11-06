@@ -29,7 +29,7 @@ export default function PrivacyPage() {
         และไม่ส่งข้อมูลจาก Google ไปให้บุคคลภายนอก การใช้ข้อมูลที่ได้รับจาก Google API เป็นไปตาม{" "}
         <a
           href="https://developers.google.com/terms/api-services-user-data-policy"
-          className="text-brand hover:underline"
+          className="font-medium text-brand hover:underline"
           target="_blank"
           rel="noreferrer"
         >
