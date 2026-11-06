@@ -22,8 +22,9 @@ Next.js (App Router) + TypeScript + Tailwind CSS + Supabase
 3. เมนู **Authentication → Users → Add user** สร้างบัญชีพนักงาน (ติ๊ก Auto Confirm)
 4. ตั้งตัวเองเป็นแอดมิน: กลับไป SQL Editor แล้วรัน
    ```sql
-   update profiles set role = 'admin', full_name = 'ชื่อของคุณ'
-   where id = (select id from auth.users where email = 'อีเมลของคุณ');
+   insert into profiles (id, full_name, role)
+   select id, 'ชื่อของคุณ', 'admin' from auth.users where email = 'อีเมลของคุณ'
+   on conflict (id) do update set role = 'admin', full_name = excluded.full_name;
    ```
    ผู้ใช้ที่สร้างใหม่จะเป็น **ช่าง (ดูอย่างเดียว)** โดยอัตโนมัติ
 5. เมนู **Project Settings → API** คัดลอก `Project URL` และ `anon public key`

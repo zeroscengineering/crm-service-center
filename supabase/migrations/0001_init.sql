@@ -53,6 +53,11 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
 
+-- สร้าง profile ให้ผู้ใช้ที่มีอยู่แล้วก่อนรันไฟล์นี้
+insert into profiles (id, full_name)
+select id, split_part(email, '@', 1) from auth.users
+on conflict (id) do nothing;
+
 create or replace function is_admin()
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (select 1 from profiles where id = auth.uid() and role = 'admin');
