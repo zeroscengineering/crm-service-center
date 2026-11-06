@@ -85,7 +85,7 @@ export function Conversation({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-[#8cabd9]/15 p-4">
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-steel/60 p-4">
         {messages.length === 0 && <p className="py-10 text-center text-sm text-zinc-400">ยังไม่มีข้อความ</p>}
         {messages.map((m) => {
           const mine = m.direction === "out";
@@ -93,9 +93,15 @@ export function Conversation({
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[75%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
                 <div
-                  className={`rounded-2xl px-3 py-2 text-sm shadow-sm ${
-                    mine ? "rounded-br-sm bg-[#06C755] text-white" : "rounded-bl-sm bg-white text-zinc-800"
-                  } ${m.status === "failed" ? "bg-rose-100 text-rose-800" : ""} ${m.status === "mock" ? "bg-amber-100 text-amber-900" : ""}`}
+                  className={`rounded-2xl px-3 py-2 text-sm ${
+                    !mine
+                      ? "rounded-bl-sm border border-line bg-white text-ink"
+                      : m.status === "failed"
+                        ? "rounded-br-sm border border-rose-200 bg-rose-50 text-rose-800"
+                        : m.status === "mock"
+                          ? "rounded-br-sm border border-dashed border-[#b07b00]/50 bg-[#fff6d6] text-[#5c4300]"
+                          : "rounded-br-sm bg-[#06C755] text-white"
+                  }`}
                 >
                   {m.msg_type === "image" ? (
                     m.has_image ? (

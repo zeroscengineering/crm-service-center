@@ -67,7 +67,7 @@ export default async function ShippingPage({
         <Link
           key={t.key}
           href={`/shipping?tab=${t.key}`}
-          className={`rounded-md px-3 py-1.5 ${tab === t.key ? "bg-brand text-white" : "text-muted hover:bg-steel"}`}
+          className={`rounded-md px-3 py-1.5 ${tab === t.key ? "bg-graphite text-white" : "text-muted hover:bg-steel"}`}
         >
           {t.label}
         </Link>

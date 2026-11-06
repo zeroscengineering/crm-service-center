@@ -30,12 +30,12 @@ export default async function JobsPage({
 
   const tabs = (
     <div className="inline-flex rounded-lg border border-line bg-white p-0.5 text-sm">
-      <Link href="/jobs" className={`rounded-md px-3 py-1.5 ${isBoard ? "bg-brand text-white" : "text-muted"}`}>
+      <Link href="/jobs" className={`rounded-md px-3 py-1.5 ${isBoard ? "bg-graphite text-white" : "text-muted hover:text-ink"}`}>
         Pipeline
       </Link>
       <Link
         href="/jobs?view=list"
-        className={`rounded-md px-3 py-1.5 ${!isBoard ? "bg-brand text-white" : "text-muted"}`}
+        className={`rounded-md px-3 py-1.5 ${!isBoard ? "bg-graphite text-white" : "text-muted hover:text-ink"}`}
       >
         ตาราง
       </Link>
@@ -48,14 +48,6 @@ export default async function JobsPage({
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight">งานซ่อม</h1>
         {tabs}
       </div>
-      {canEdit && (
-        <Link
-          href="/jobs/new"
-          className="btn btn-primary"
-        >
-          + รับแจ้งซ่อมใหม่
-        </Link>
-      )}
     </header>
   );
 
