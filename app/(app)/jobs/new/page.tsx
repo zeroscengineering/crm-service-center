@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { todayBangkok } from "@/lib/format";
 import NewJobForm from "./NewJobForm";
 import type { CustomerWithTools } from "@/lib/types";
+import { nextDocNo } from "@/lib/docno";
 
 export default async function NewJobPage({
   searchParams,
@@ -41,6 +42,7 @@ export default async function NewJobPage({
         initialCustomer={(custRes.data as CustomerWithTools | null) ?? null}
         lineUserId={sp.line ?? ""}
         defaultName={sp.name ?? ""}
+        nextDoc={await nextDocNo(supabase)}
       />
     </div>
   );

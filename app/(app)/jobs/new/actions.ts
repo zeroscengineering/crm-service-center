@@ -9,6 +9,7 @@ import { cleanSearch, normalizePhone } from "@/lib/format";
 import type { CustomerWithTools } from "@/lib/types";
 import { adminConfigured } from "@/lib/supabase/admin";
 import { linkContact } from "@/lib/chat";
+import { nextDocNo } from "@/lib/docno";
 
 /** ค้นหาลูกค้าจากชื่อหรือเบอร์โทร (ใช้ในฟอร์มรับแจ้งซ่อม) */
 export async function searchCustomers(query: string): Promise<CustomerWithTools[]> {
@@ -36,32 +37,55 @@ export type CreateJobState = {
   fieldErrors?: Record<string, string>;
 };
 
+/** ข้อมูลเครื่องแต่ละเครื่องจากฟอร์ม (ส่งมาเป็น JSON) */
+export type ToolEntry = {
+  tool_id: string; // "" = เครื่องใหม่
+  brand: string;
+  model: string;
+  serial_number: string;
+  issue_description: string;
+  warranty: string;
+  accessories: string[];
+  received_documents: string[];
+  repair_notes: string;
+};
+
 function str(fd: FormData, key: string) {
   return String(fd.get(key) ?? "").trim();
 }
 
-function list(fd: FormData, key: string, otherKey: string) {
-  const items = fd.getAll(key).map((v) => String(v).trim()).filter(Boolean);
-  const other = str(fd, otherKey);
-  if (other) items.push(...other.split(",").map((s) => s.trim()).filter(Boolean));
-  return Array.from(new Set(items));
+function clean(list: string[]) {
+  return Array.from(new Set(list.flatMap((v) => v.split(",")).map((v) => v.trim()).filter(Boolean)));
 }
 
 export async function createJob(_prev: CreateJobState, fd: FormData): Promise<CreateJobState> {
   await requireAdmin();
   const supabase = await createClient();
-
   const fieldErrors: Record<string, string> = {};
 
-  const docNo = str(fd, "doc_no").toUpperCase();
+  // ---------- เครื่อง ----------
+  let tools: ToolEntry[] = [];
+  try {
+    tools = JSON.parse(str(fd, "tools") || "[]") as ToolEntry[];
+  } catch {
+    return { error: "ข้อมูลเครื่องไม่ถูกต้อง" };
+  }
+  if (tools.length === 0) return { error: "กรุณาเพิ่มเครื่องอย่างน้อย 1 เครื่อง" };
+  tools.forEach((t, i) => {
+    if (!t.tool_id) {
+      if (!BRANDS.includes(t.brand as Brand)) fieldErrors[`t${i}.brand`] = "เลือกแบรนด์";
+      if (!t.model.trim()) fieldErrors[`t${i}.model`] = "กรอกรุ่น";
+    }
+    if (!t.issue_description.trim()) fieldErrors[`t${i}.issue`] = "กรอกอาการเสีย";
+  });
+
+  // ---------- เลขที่เอกสาร ----------
+  const manual = str(fd, "doc_mode") === "manual" && tools.length === 1;
+  const manualDoc = str(fd, "doc_no").toUpperCase();
+  if (manual && !manualDoc) fieldErrors.doc_no = "กรุณากรอกเลขที่เอกสาร";
+
+  // ---------- ลูกค้า ----------
   const customerId = str(fd, "customer_id");
-  const toolId = str(fd, "tool_id");
-  const issue = str(fd, "issue_description");
-
-  if (!docNo) fieldErrors.doc_no = "กรุณากรอกเลขที่เอกสาร";
-  if (!issue) fieldErrors.issue_description = "กรุณากรอกอาการเสีย";
-
-  // ลูกค้า
   const customerInput = {
     name: str(fd, "customer_name"),
     phone: normalizePhone(str(fd, "customer_phone")),
@@ -73,110 +97,100 @@ export async function createJob(_prev: CreateJobState, fd: FormData): Promise<Cr
     if (customerInput.phone.length < 9) fieldErrors.customer_phone = "เบอร์โทรไม่ถูกต้อง";
   }
 
-  // เครื่องมือ
-  const brand = str(fd, "brand") as Brand;
-  const toolInput = {
-    brand,
-    model: str(fd, "model"),
-    serial_number: str(fd, "serial_number").toUpperCase() || null,
-  };
-  if (!toolId) {
-    if (!BRANDS.includes(brand)) fieldErrors.brand = "กรุณาเลือกแบรนด์";
-    if (!toolInput.model) fieldErrors.model = "กรุณากรอกรุ่น";
+  if (Object.keys(fieldErrors).length) return { error: "กรุณาตรวจสอบข้อมูลที่ไฮไลต์", fieldErrors };
+
+  if (manual) {
+    const { data: dup } = await supabase.from("repair_jobs").select("id").eq("doc_no", manualDoc).maybeSingle();
+    if (dup) return { error: "เลขที่เอกสารนี้ถูกใช้แล้ว", fieldErrors: { doc_no: "เลขที่เอกสารซ้ำ" } };
   }
 
-  if (Object.keys(fieldErrors).length) {
-    return { error: "กรุณาตรวจสอบข้อมูลที่ไฮไลต์", fieldErrors };
-  }
-
-  // เลขที่เอกสารห้ามซ้ำ
-  const { data: dup } = await supabase
-    .from("repair_jobs")
-    .select("id")
-    .eq("doc_no", docNo)
-    .maybeSingle();
-  if (dup) {
-    return { error: "เลขที่เอกสารนี้ถูกใช้แล้ว", fieldErrors: { doc_no: "เลขที่เอกสารซ้ำ" } };
-  }
-
-  let createdCustomerId: string | null = null;
-  let createdToolId: string | null = null;
-
-  // rollback แบบง่าย หากขั้นตอนถัดไปล้มเหลว
-  async function cleanup() {
-    if (createdToolId) await supabase.from("tools").delete().eq("id", createdToolId);
-    if (createdCustomerId) await supabase.from("customers").delete().eq("id", createdCustomerId);
+  const created = { customer: null as string | null, tools: [] as string[], jobs: [] as string[] };
+  async function rollback() {
+    if (created.jobs.length) await supabase.from("repair_jobs").delete().in("id", created.jobs);
+    if (created.tools.length) await supabase.from("tools").delete().in("id", created.tools);
+    if (created.customer) await supabase.from("customers").delete().eq("id", created.customer);
   }
 
   let finalCustomerId = customerId;
   if (!finalCustomerId) {
-    const { data, error } = await supabase
-      .from("customers")
-      .insert(customerInput)
-      .select("id")
-      .single();
+    const { data, error } = await supabase.from("customers").insert(customerInput).select("id").single();
     if (error || !data) return { error: `บันทึกลูกค้าไม่สำเร็จ: ${error?.message ?? ""}` };
-    finalCustomerId = data.id;
-    createdCustomerId = data.id;
-  }
-
-  let finalToolId = toolId;
-  if (!finalToolId) {
-    const { data, error } = await supabase
-      .from("tools")
-      .insert({ ...toolInput, customer_id: finalCustomerId })
-      .select("id")
-      .single();
-    if (error || !data) {
-      await cleanup();
-      return { error: `บันทึกเครื่องมือไม่สำเร็จ: ${error?.message ?? ""}` };
-    }
-    finalToolId = data.id;
-    createdToolId = data.id;
+    finalCustomerId = data.id as string;
+    created.customer = finalCustomerId;
   }
 
   const technicianId = str(fd, "technician_id") || null;
   let technicianName: string | null = null;
   if (technicianId) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("id", technicianId)
-      .maybeSingle();
+    const { data } = await supabase.from("profiles").select("full_name").eq("id", technicianId).maybeSingle();
     technicianName = data?.full_name ?? null;
   }
 
-  const { data: job, error: jobError } = await supabase
-    .from("repair_jobs")
-    .insert({
-      doc_no: docNo,
-      customer_id: finalCustomerId,
-      tool_id: finalToolId,
-      branch_id: str(fd, "branch_id") || null,
-      issue_description: issue,
-      warranty: str(fd, "warranty") || "unknown",
-      accessories: list(fd, "accessories", "accessories_other"),
-      received_documents: list(fd, "received_documents", "documents_other"),
-      repair_notes: str(fd, "repair_notes") || null,
-      technician_id: technicianId,
-      technician_name: technicianName,
-      received_at: str(fd, "received_at") || undefined,
-    })
-    .select("id")
-    .single();
+  const shared = {
+    customer_id: finalCustomerId,
+    branch_id: str(fd, "branch_id") || null,
+    technician_id: technicianId,
+    technician_name: technicianName,
+    received_at: str(fd, "received_at") || undefined,
+  };
 
-  if (jobError || !job) {
-    await cleanup();
-    const msg = jobError?.code === "23505" ? "เลขที่เอกสารซ้ำ" : jobError?.message ?? "";
-    return { error: `บันทึกงานซ่อมไม่สำเร็จ: ${msg}` };
+  for (const t of tools) {
+    let toolId = t.tool_id;
+    if (!toolId) {
+      const { data, error } = await supabase
+        .from("tools")
+        .insert({
+          customer_id: finalCustomerId,
+          brand: t.brand,
+          model: t.model.trim(),
+          serial_number: t.serial_number.trim().toUpperCase() || null,
+        })
+        .select("id")
+        .single();
+      if (error || !data) {
+        await rollback();
+        return { error: `บันทึกเครื่องมือไม่สำเร็จ: ${error?.message ?? ""}` };
+      }
+      toolId = data.id as string;
+      created.tools.push(toolId);
+    }
+
+    const jobRow = {
+      ...shared,
+      tool_id: toolId,
+      issue_description: t.issue_description.trim(),
+      warranty: ["in_warranty", "out_of_warranty", "unknown"].includes(t.warranty) ? t.warranty : "unknown",
+      accessories: clean(t.accessories),
+      received_documents: clean(t.received_documents),
+      repair_notes: t.repair_notes.trim() || null,
+    };
+
+    // เลขรันอัตโนมัติ: ถ้าชนกัน (มีคนบันทึกพร้อมกัน) ขยับเลขถัดไปให้เอง
+    let jobId: string | null = null;
+    let lastErr = "";
+    for (let attempt = 0; attempt < 6 && !jobId; attempt++) {
+      const docNo = manual ? manualDoc : await nextDocNo(supabase, attempt);
+      const { data, error } = await supabase
+        .from("repair_jobs")
+        .insert({ ...jobRow, doc_no: docNo })
+        .select("id")
+        .single();
+      if (data) jobId = data.id as string;
+      else {
+        lastErr = error?.code === "23505" ? "เลขที่เอกสารซ้ำ" : error?.message ?? "";
+        if (manual || error?.code !== "23505") break;
+      }
+    }
+    if (!jobId) {
+      await rollback();
+      return { error: `บันทึกงานซ่อมไม่สำเร็จ: ${lastErr}` };
+    }
+    created.jobs.push(jobId);
   }
 
-  // ขนส่งที่ลูกค้าใช้
   const carrierId = str(fd, "carrier_id");
-  if (carrierId) {
-    await supabase.from("customers").update({ default_carrier_id: carrierId }).eq("id", finalCustomerId);
-  }
-  // สร้างจากแชท LINE ผูกแชทกับลูกค้า
+  if (carrierId) await supabase.from("customers").update({ default_carrier_id: carrierId }).eq("id", finalCustomerId);
+
   const lineUserId = str(fd, "line_user_id");
   if (lineUserId && adminConfigured()) {
     await linkContact(lineUserId, finalCustomerId).catch((e) => console.error("[link contact]", e));
@@ -185,5 +199,7 @@ export async function createJob(_prev: CreateJobState, fd: FormData): Promise<Cr
 
   revalidatePath("/dashboard");
   revalidatePath("/jobs");
-  redirect(`/print/job/${job.id}?new=1`);
+  redirect(
+    created.jobs.length === 1 ? `/print/job/${created.jobs[0]}?new=1` : `/print/jobs?ids=${created.jobs.join(",")}&new=1`,
+  );
 }
