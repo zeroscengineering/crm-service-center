@@ -40,6 +40,8 @@ async function fetchAll(table: string): Promise<Row[]> {
   const out: Row[] = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await db.from(table).select("*").range(from, from + 999);
+    // ตารางที่ยังไม่ได้รัน SQL (เช่น 0008) ให้ข้ามไป ไม่ทำให้ backup ล้ม
+    if (error && (error.code === "42P01" || error.code === "PGRST205" || /does not exist|schema cache/i.test(error.message))) return out;
     if (error) throw new Error(`อ่านตาราง ${table} ไม่ได้: ${error.message}`);
     out.push(...((data ?? []) as Row[]));
     if (!data || data.length < 1000) break;
