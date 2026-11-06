@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 import { apiAuth } from "@/lib/api-auth";
-import { deleteFile, downloadFile, driveConfigured } from "@/lib/google-drive";
+import { deleteFile, downloadFile, driveReady } from "@/lib/google-drive";
 
 export const runtime = "nodejs";
 
@@ -17,7 +17,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ ima
     .eq("id", imageId)
     .maybeSingle();
   if (!img) return NextResponse.json({ error: "ไม่พบไฟล์" }, { status: 404 });
-  if (!driveConfigured()) return NextResponse.json({ error: "ยังไม่ได้เชื่อม Google Drive" }, { status: 503 });
+  if (!(await driveReady())) return NextResponse.json({ error: "ยังไม่ได้เชื่อมต่อ Google Drive" }, { status: 503 });
 
   try {
     const res = await downloadFile(img.drive_file_id as string);
@@ -47,7 +47,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!img) return NextResponse.json({ error: "ไม่พบไฟล์" }, { status: 404 });
 
   try {
-    if (driveConfigured()) await deleteFile(img.drive_file_id as string);
+    if (await driveReady()) await deleteFile(img.drive_file_id as string);
   } catch (e) {
     console.error("[drive delete]", e);
     return NextResponse.json({ error: "ลบไฟล์ใน Google Drive ไม่สำเร็จ" }, { status: 502 });

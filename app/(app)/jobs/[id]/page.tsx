@@ -6,7 +6,7 @@ import { STATUS_LABEL, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants
 import { formatDate, formatDateTime, formatPhone } from "@/lib/format";
 import StatusBadge from "@/components/StatusBadge";
 import FileGallery, { type JobFile } from "@/components/FileGallery";
-import { driveConfigured } from "@/lib/google-drive";
+import { driveReady } from "@/lib/google-drive";
 import { CostPanel, JobInfoForm, NoteForm, StatusControl, type Part } from "./JobPanels";
 
 type Job = {
@@ -174,7 +174,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           </Card>
 
           <Card title={`รูปภาพ & เอกสาร (${files.length})`}>
-            <FileGallery jobId={job.id} files={files} canEdit={canEdit} configured={driveConfigured()} />
+            <FileGallery jobId={job.id} files={files} canEdit={canEdit} configured={await driveReady()} />
           </Card>
         </div>
 

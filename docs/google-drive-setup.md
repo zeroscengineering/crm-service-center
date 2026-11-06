@@ -1,96 +1,64 @@
 # ตั้งค่า Google Drive (Gmail ส่วนตัว)
 
-ระบบจะอัปโหลดรูป/เอกสารลง Google Drive ของบัญชีคุณ ในโฟลเดอร์
-`CRM-SERVICE CENTER / <เลขที่เอกสาร>` (ระบบสร้างให้อัตโนมัติ)
+หลังตั้งค่าครั้งแรก (ทำครั้งเดียว ~10 นาที) การเชื่อมต่อ/เปลี่ยนบัญชี/ยกเลิก ทำได้ที่เมนู **⚙️ ตั้งค่า** ในโปรแกรม
 
-ใช้สิทธิ์ `drive.file` = แอปเห็น **เฉพาะไฟล์ที่แอปสร้างเอง** ไม่สามารถอ่านไฟล์อื่นใน Drive ของคุณ
-ไฟล์ไม่ถูกเปิดเป็นสาธารณะ — พนักงานดูผ่านเว็บ CRM ที่ล็อกอินแล้วเท่านั้น
+สิ่งที่เก็บใน Drive (โฟลเดอร์ `CRM-SERVICE CENTER` สร้างให้อัตโนมัติ):
+- `CRM-SERVICE CENTER / <เลขที่เอกสาร>` — รูปก่อน/หลังซ่อม และไฟล์เอกสาร
+- `CRM-SERVICE CENTER / สำรองข้อมูล (Backups)` — สำรองข้อมูลแชท/โน้ต ลูกค้า งานซ่อม อะไหล่ (JSON + CSV)
 
-ใช้เวลาประมาณ 10–15 นาที ทำครั้งเดียว
+ระบบใช้สิทธิ์ `drive.file` = เห็น **เฉพาะไฟล์ที่ระบบสร้างเอง** ไม่อ่านไฟล์อื่นใน Drive ของคุณ
+ไฟล์ไม่ถูกเปิดสาธารณะ — ดูได้ผ่านเว็บ CRM ที่ล็อกอินแล้วเท่านั้น
 
 ---
 
-## ส่วน A — สร้างโปรเจกต์ Google Cloud
-1. เปิด https://console.cloud.google.com แล้วล็อกอินด้วย **zero.scengineering@gmail.com**
-   (ครั้งแรกอาจให้ยอมรับเงื่อนไข → ติ๊ก แล้ว Agree — ไม่ต้องใส่บัตรเครดิต)
-2. แถบบนสุด กดช่องเลือกโปรเจกต์ (ข้างโลโก้ Google Cloud) → **New Project**
-3. Project name: `CRM Service Center` → **Create**
-4. รอสักครู่ แล้วกดช่องเลือกโปรเจกต์อีกครั้ง → เลือก **CRM Service Center** (ต้องเห็นชื่อนี้บนแถบบน)
+## ขั้นที่ 1 — Supabase (2 อย่าง)
+1. **SQL Editor** → วางไฟล์ `supabase/migrations/0002_app_settings.sql` → **Run**
+2. **Project Settings → API Keys** → คัดลอก **service_role** key (secret)
+   ⚠️ คีย์นี้มีสิทธิ์เต็ม — ใส่ใน Vercel เท่านั้น ห้ามแชร์
 
-## ส่วน B — เปิดใช้ Google Drive API
-1. เมนูซ้าย ☰ → **APIs & Services → Library**
-2. ค้นหา `Google Drive API` → คลิก → **Enable**
+## ขั้นที่ 2 — Google Cloud Console
+1. เปิด https://console.cloud.google.com ล็อกอินด้วยบัญชีที่จะใช้เก็บไฟล์ (ไม่ต้องใส่บัตรเครดิต)
+2. แถบบน → ช่องเลือกโปรเจกต์ → **New Project** → ชื่อ `CRM Service Center` → **Create** → เลือกโปรเจกต์นี้
+3. ☰ → **APIs & Services → Library** → ค้นหา `Google Drive API` → **Enable**
+4. ☰ → **APIs & Services → OAuth consent screen** (Google Auth Platform) → **Get started**
+   - App name: `CRM Service Center` · Support email: อีเมลคุณ → Next
+   - Audience: **External** → Next
+   - Contact: อีเมลคุณ → Next → ติ๊กยอมรับ → **Create**
+5. ⚠️ เมนู **Audience** → **Publish app** → Confirm → ต้องเป็น **In production**
+   (ถ้าค้าง *Testing* การเชื่อมต่อจะหลุดทุก 7 วัน · ไม่ต้องส่ง verification)
+6. เมนู **Clients** → **Create client**
+   - Application type: **Web application** · Name: `CRM Vercel`
+   - **Authorized redirect URIs** → Add URI → วางลิงก์ที่แสดงในหน้า **⚙️ ตั้งค่า** ของโปรแกรม
+     (รูปแบบ `https://<ชื่อเว็บ>.vercel.app/api/google/callback` — มีปุ่มคัดลอกให้)
+   - **Create** → คัดลอก **Client ID** และ **Client secret** (กด Download JSON เก็บไว้ด้วย)
 
-## ส่วน C — ตั้งค่าหน้าขออนุญาต (OAuth consent screen)
-1. เมนูซ้าย ☰ → **APIs & Services → OAuth consent screen** (หรือ **Google Auth Platform**) → **Get started**
-2. กรอก
-   - App name: `CRM Service Center`
-   - User support email: zero.scengineering@gmail.com → **Next**
-3. Audience: เลือก **External** → **Next**
-4. Contact information: zero.scengineering@gmail.com → **Next**
-5. ติ๊กยอมรับนโยบาย → **Continue** → **Create**
-6. ⚠️ **สำคัญมาก:** ไปที่เมนู **Audience** → กด **Publish app** → **Confirm**
-   ให้สถานะเป็น **In production**
-   (ถ้าค้างไว้ที่ *Testing* — token จะหมดอายุทุก 7 วัน และการอัปโหลดจะหยุดทำงาน)
-   ไม่ต้องส่งตรวจสอบ (verification) เพราะสิทธิ์ drive.file ไม่ใช่สิทธิ์อ่อนไหว
+## ขั้นที่ 3 — Vercel
+**Settings → Environment Variables** → เพิ่ม (Production and Preview)
 
-## ส่วน D — สร้าง OAuth Client
-1. เมนู **Clients** (หรือ APIs & Services → Credentials → Create credentials → OAuth client ID) → **Create client**
-2. Application type: **Web application**
-3. Name: `CRM Vercel`
-4. **Authorized redirect URIs** → **Add URI** → วาง
-   ```
-   https://developers.google.com/oauthplayground
-   ```
-5. **Create**
-6. จะมีหน้าต่างแสดง **Client ID** และ **Client secret**
-   → คัดลอกทั้งสองค่าเก็บไว้ (หรือกด **Download JSON**)
-   ⚠️ Client secret อาจแสดงครั้งเดียว — ห้ามส่งให้ใครหรือวางในแชท
+| Key | Value |
+|---|---|
+| `SUPABASE_SERVICE_ROLE_KEY` | จากขั้นที่ 1 |
+| `GOOGLE_CLIENT_ID` | จากขั้นที่ 2 |
+| `GOOGLE_CLIENT_SECRET` | จากขั้นที่ 2 |
+| `CRON_SECRET` | ตั้งเองเป็นข้อความสุ่มยาว ๆ (เช่น `crm-backup-8f3k2m9x7q`) — ใช้เปิดสำรองข้อมูลอัตโนมัติทุกคืน |
 
-## ส่วน E — สร้าง Refresh Token (ผ่าน OAuth Playground)
-1. เปิด https://developers.google.com/oauthplayground
-2. มุมขวาบน กด ⚙️ (OAuth 2.0 configuration)
-   - ติ๊ก ✅ **Use your own OAuth credentials**
-   - OAuth Client ID: วางจากส่วน D
-   - OAuth Client secret: วางจากส่วน D
-   - กด **Close**
-3. ด้านซ้าย **Step 1** — ช่องล่างสุด *Input your own scopes* พิมพ์
-   ```
-   https://www.googleapis.com/auth/drive.file
-   ```
-   → กด **Authorize APIs**
-4. เลือกบัญชี **zero.scengineering@gmail.com**
-5. จะขึ้นคำเตือน *"Google hasn't verified this app"* (ปกติ เพราะเป็นแอปของคุณเอง)
-   → กด **Advanced** → **Go to CRM Service Center (unsafe)** → **Continue**
-6. กลับมาที่ Playground → **Step 2** → กด **Exchange authorization code for tokens**
-7. คัดลอกค่า **Refresh token** (ขึ้นต้นด้วย `1//`) เก็บไว้
+⚠️ ห้ามใส่ `NEXT_PUBLIC_` นำหน้า → **Save** → **Deployments** → รายการบนสุด → ⋯ → **Redeploy**
 
-## ส่วน F — ใส่ค่าใน Vercel
-1. Vercel → โปรเจกต์ crm-service-center → **Settings → Environment Variables**
-2. เพิ่ม 3 ค่า (Environments: Production and Preview)
-
-   | Key | Value |
-   |---|---|
-   | `GOOGLE_CLIENT_ID` | Client ID จากส่วน D |
-   | `GOOGLE_CLIENT_SECRET` | Client secret จากส่วน D |
-   | `GOOGLE_REFRESH_TOKEN` | Refresh token จากส่วน E |
-
-   ⚠️ ห้ามใส่ `NEXT_PUBLIC_` นำหน้า (ค่าลับต้องอยู่ฝั่ง server เท่านั้น)
-3. **Save**
-4. ไปที่ **Deployments** → รายการบนสุด → ⋯ → **Redeploy** (ค่าใหม่จะมีผลหลัง redeploy)
-
-## ส่วน G — ทดสอบ
-1. เปิดงานซ่อมใดก็ได้ในเว็บ → การ์ด **รูปภาพ & เอกสาร** → **+ อัปโหลด**
-2. เลือกรูป → รอขึ้น thumbnail
-3. เปิด Google Drive ของคุณ → ควรเห็นโฟลเดอร์ `CRM-SERVICE CENTER` → โฟลเดอร์เลขที่เอกสาร → รูปที่อัปโหลด
+## ขั้นที่ 4 — กดเชื่อมต่อในโปรแกรม
+1. ล็อกอินเว็บ CRM → เมนู **⚙️ ตั้งค่า** (เช็กลิสต์ต้องเป็น ✅ ครบ)
+2. กด **เชื่อมต่อ Google Drive** → เลือกบัญชี
+3. หน้า *"Google hasn't verified this app"* (ปกติ เพราะเป็นแอปของคุณเอง) → **Advanced** → **Go to CRM Service Center (unsafe)**
+4. ✅ ติ๊กช่องอนุญาต **Google Drive** → **Continue**
+5. กลับมาหน้าตั้งค่า → จะเห็นบัญชี พื้นที่คงเหลือ (GB) จำนวนไฟล์ → กด **💾 สำรองข้อมูลตอนนี้** เพื่อทดสอบ
 
 ---
 
 ## แก้ปัญหา
-| อาการ | สาเหตุ / วิธีแก้ |
+| อาการ | วิธีแก้ |
 |---|---|
-| ยังขึ้น "ยังไม่ได้เชื่อม Google Drive" | ยังไม่ได้ Redeploy หลังใส่ค่า หรือชื่อ Key สะกดผิด |
-| "Refresh token หมดอายุหรือถูกยกเลิก" | ลืม Publish app (ส่วน C ข้อ 6) หรือไปกดยกเลิกสิทธิ์ใน Google Account → ทำส่วน E ใหม่ แล้วอัปเดตค่าใน Vercel |
-| `redirect_uri_mismatch` ตอนทำส่วน E | URI ในส่วน D ข้อ 4 ไม่ตรง ต้องเป็น `https://developers.google.com/oauthplayground` เป๊ะ ๆ (ไม่มี / ท้าย) |
-| "ไฟล์ใหญ่เกิน 4MB" | รูปถูกย่ออัตโนมัติแล้ว — ปัญหานี้มักเกิดกับ PDF ขนาดใหญ่ ให้บีบอัด PDF ก่อน |
-| ย้าย/ลบโฟลเดอร์ใน Drive เอง | ระบบจะสร้างโฟลเดอร์ใหม่ให้อัตโนมัติ แต่ไฟล์ที่ลบใน Drive จะแสดงไม่ได้ในเว็บ |
+| เช็กลิสต์ไม่ ✅ ทั้งที่ใส่ค่าแล้ว | ยังไม่ได้ Redeploy หรือชื่อ Key สะกดผิด |
+| `redirect_uri_mismatch` | Redirect URI ใน Google Cloud ไม่ตรงกับที่หน้าตั้งค่าแสดง — คัดลอกใหม่ (ต้องเป็นโดเมน production) |
+| `Error 403: access_denied` | ยังไม่ได้ Publish app (ขั้นที่ 2 ข้อ 5) |
+| "ไม่ได้ติ๊กอนุญาตสิทธิ์ Google Drive" | ตอนเชื่อมต่อต้องติ๊กช่อง Drive ด้วย — กดเชื่อมต่อใหม่ |
+| "สิทธิ์การเชื่อมต่อหมดอายุ" | กด **เปลี่ยนบัญชี / เชื่อมต่อใหม่** ในหน้าตั้งค่า |
+| "ไฟล์ใหญ่เกิน 4MB" | รูปถูกย่ออัตโนมัติแล้ว — มักเกิดกับ PDF ใหญ่ ให้บีบอัดก่อน |

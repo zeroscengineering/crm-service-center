@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 import { apiAuth } from "@/lib/api-auth";
-import { driveConfigured, jobFolder, uploadFile } from "@/lib/google-drive";
+import { driveReady, jobFolder, uploadFile } from "@/lib/google-drive";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -16,8 +16,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if ("res" in auth) return auth.res;
   const { supabase } = auth;
 
-  if (!driveConfigured()) {
-    return NextResponse.json({ error: "ยังไม่ได้เชื่อม Google Drive (ตั้งค่า GOOGLE_* ใน Vercel)" }, { status: 503 });
+  if (!(await driveReady())) {
+    return NextResponse.json({ error: "ยังไม่ได้เชื่อมต่อ Google Drive (ไปที่เมนู ตั้งค่า)" }, { status: 503 });
   }
 
   const form = await req.formData();

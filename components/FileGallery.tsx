@@ -99,7 +99,14 @@ export default function FileGallery({
   if (!configured) {
     return (
       <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-amber-200">
-        ยังไม่ได้เชื่อม Google Drive — ตั้งค่า GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REFRESH_TOKEN ใน Vercel
+        ยังไม่ได้เชื่อมต่อ Google Drive —{" "}
+        {canEdit ? (
+          <a href="/settings" className="font-semibold underline">
+            ไปที่หน้าตั้งค่าเพื่อเชื่อมต่อ
+          </a>
+        ) : (
+          "แจ้งแอดมินให้เชื่อมต่อในหน้าตั้งค่า"
+        )}
       </p>
     );
   }

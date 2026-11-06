@@ -11,6 +11,7 @@ const ITEMS: Item[] = [
   { href: "/jobs/new", label: "รับแจ้งซ่อมใหม่", adminOnly: true },
   { href: "/customers", label: "ลูกค้า & เครื่องมือ" },
   { href: "/track", label: "หน้าเช็กสถานะ (ลูกค้า) ↗" },
+  { href: "/settings", label: "⚙️ ตั้งค่า", adminOnly: true },
 ];
 
 export default function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
