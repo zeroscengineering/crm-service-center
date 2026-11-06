@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLineConfig, lineReady, replyText, verifySignature } from "@/lib/line";
 import { STATUS_LABEL, type RepairStatus } from "@/lib/constants";
@@ -17,7 +17,7 @@ async function forward(url: string, raw: string, signature: string | null) {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(signature ? { "x-line-signature": signature } : {}) },
       body: raw,
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(20000),
     });
   } catch (e) {
     console.error("[line forward]", e);
@@ -91,7 +91,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "bad json" }, { status: 400 });
   }
 
+  // LINE รอคำตอบแค่ ~1-2 วินาที → ตอบ 200 ทันที แล้วทำงานต่อเบื้องหลัง
+  if (events.length === 0) return NextResponse.json({ ok: true }); // คำขอ Verify จาก LINE
+
   const base = await siteUrl();
+  after(() => processEvents(events, cfg, raw, signature, base));
+  return NextResponse.json({ ok: true });
+}
+
+async function processEvents(
+  events: LineEvent[],
+  cfg: NonNullable<Awaited<ReturnType<typeof getLineConfig>>>,
+  raw: string,
+  signature: string | null,
+  base: string,
+) {
   const tasks: Promise<unknown>[] = [];
   if (cfg.forward_url) tasks.push(forward(cfg.forward_url, raw, signature));
 
@@ -118,5 +132,4 @@ export async function POST(req: NextRequest) {
   }
 
   await Promise.allSettled(tasks);
-  return NextResponse.json({ ok: true });
 }

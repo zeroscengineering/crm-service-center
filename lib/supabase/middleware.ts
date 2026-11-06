@@ -4,6 +4,10 @@ import { NextResponse, type NextRequest } from "next/server";
 const PUBLIC_PATHS = ["/login", "/track", "/privacy", "/terms", "/api/line/webhook", "/api/cron"];
 
 export async function updateSession(request: NextRequest) {
+  // webhook / cron ไม่ต้องตรวจ session (ให้ตอบเร็วที่สุด)
+  const p = request.nextUrl.pathname;
+  if (p.startsWith("/api/line/") || p.startsWith("/api/cron/")) return NextResponse.next({ request });
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
