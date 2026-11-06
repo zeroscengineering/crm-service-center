@@ -50,11 +50,11 @@ type Job = {
 type History = { id: string; from_status: RepairStatus | null; to_status: RepairStatus; created_at: string; profiles: { full_name: string } | null };
 type Note = { id: string; body: string; created_at: string; profiles: { full_name: string } | null };
 
-function Card({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+function Card({ title, action, children }: { title: React.ReactNode; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="panel p-5">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="font-semibold">{title}</h2>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <h2 className="panel-title flex items-center gap-2">{title}</h2>
         {action}
       </div>
       {children}
@@ -122,9 +122,6 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const shippingReady = !carrierRes.error;
   const shipments = (shipRes.data ?? []) as Shipment[];
   const carriers = (carrierRes.data ?? []) as Carrier[];
-  const defaultCarrierId = ((custCarrier.data as { default_carrier_id?: string | null } | null)?.default_carrier_id ?? null) as
-    | string
-    | null;
   const base = await siteUrl();
   const [lineCfg, lineCtx, driveOk, custCarrier] = await Promise.all([
     adminConfigured() ? getLineConfig() : Promise.resolve(null),
@@ -135,6 +132,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       : Promise.resolve({ data: null }),
   ]);
   const lineDefault = lineCtx ? buildStatusMessage(lineCtx.ctx) : "";
+  const defaultCarrierId = ((custCarrier.data as { default_carrier_id?: string | null } | null)?.default_carrier_id ?? null) as
+    | string
+    | null;
+
   const technicians = (staffRes.data ?? []).map((s) => ({ id: s.id as string, name: s.full_name as string }));
 
   return (
