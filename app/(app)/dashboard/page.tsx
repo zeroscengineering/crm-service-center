@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { PIPELINE, STATUS_LABEL, type RepairStatus } from "@/lib/constants";
+import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
 
 type JobRow = {
@@ -65,7 +66,11 @@ export default async function DashboardPage() {
               <tbody className="divide-y divide-zinc-100">
                 {recent.map((j) => (
                   <tr key={j.id}>
-                    <td className="px-4 py-2 font-mono">{j.doc_no}</td>
+                    <td className="px-4 py-2 font-mono">
+                      <Link href={`/jobs/${j.id}`} className="font-semibold text-brand hover:underline">
+                        {j.doc_no}
+                      </Link>
+                    </td>
                     <td className="px-4 py-2">{j.customers?.name}</td>
                     <td className="px-4 py-2">
                       {j.tools?.brand} {j.tools?.model}

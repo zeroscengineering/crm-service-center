@@ -63,8 +63,8 @@ export default async function PrintJobPage({
       <style>{`@page { size: A5; margin: 8mm; }`}</style>
 
       <div className="mx-auto mb-4 flex max-w-[148mm] items-center justify-between print:hidden">
-        <Link href="/jobs" className="text-sm text-zinc-600 hover:underline">
-          ← กลับไปรายการงานซ่อม
+        <Link href={`/jobs/${job.id}`} className="text-sm text-zinc-600 hover:underline">
+          ← ไปหน้ารายละเอียดงาน
         </Link>
         <PrintButton autoPrint={sp.new === "1"} />
       </div>

@@ -88,7 +88,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             return (
               <li key={j.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
                 <div>
-                  <span className="font-mono font-medium">{j.doc_no}</span>
+                  <Link href={`/jobs/${j.id}`} className="font-mono font-medium text-brand hover:underline">
+                    {j.doc_no}
+                  </Link>
                   <span className="ml-2 text-zinc-500">{formatDate(j.received_at)}</span>
                   <p className="text-zinc-600">
                     {tool ? `${tool.brand} ${tool.model} — ` : ""}
@@ -97,8 +99,8 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                 </div>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={j.status} />
-                  <Link href={`/print/job/${j.id}`} className="text-brand hover:underline">
-                    ใบรับเครื่อง
+                  <Link href={`/print/job/${j.id}`} className="text-zinc-500 hover:underline">
+                    พิมพ์
                   </Link>
                 </div>
               </li>

@@ -4,12 +4,14 @@ import { requireProfile } from "@/lib/auth";
 import { STATUSES, STATUS_LABEL, type RepairStatus } from "@/lib/constants";
 import { cleanSearch, formatDate, formatPhone } from "@/lib/format";
 import StatusBadge from "@/components/StatusBadge";
+import KanbanBoard, { type BoardJob } from "@/components/KanbanBoard";
 
 type Row = {
   id: string;
   doc_no: string;
   status: RepairStatus;
   received_at: string;
+  updated_at: string;
   technician_name: string | null;
   customers: { name: string; phone: string } | null;
   tools: { brand: string; model: string; serial_number: string | null } | null;
@@ -18,16 +20,93 @@ type Row = {
 export default async function JobsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; view?: string }>;
 }) {
   const profile = await requireProfile();
-  const { q = "", status = "" } = await searchParams;
+  const { q = "", status = "", view = "board" } = await searchParams;
   const supabase = await createClient();
+  const isBoard = view !== "list";
+  const canEdit = profile.role === "admin";
+
+  const tabs = (
+    <div className="inline-flex rounded-lg border border-zinc-300 bg-white p-0.5 text-sm">
+      <Link href="/jobs" className={`rounded-md px-3 py-1.5 ${isBoard ? "bg-brand text-white" : "text-zinc-600"}`}>
+        Pipeline
+      </Link>
+      <Link
+        href="/jobs?view=list"
+        className={`rounded-md px-3 py-1.5 ${!isBoard ? "bg-brand text-white" : "text-zinc-600"}`}
+      >
+        ตาราง
+      </Link>
+    </div>
+  );
+
+  const header = (
+    <header className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-4">
+        <h1 className="text-2xl font-bold">งานซ่อม</h1>
+        {tabs}
+      </div>
+      {canEdit && (
+        <Link
+          href="/jobs/new"
+          className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
+        >
+          + รับแจ้งซ่อมใหม่
+        </Link>
+      )}
+    </header>
+  );
+
+  if (isBoard) {
+    const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+    const { data } = await supabase
+      .from("repair_jobs")
+      .select("id, doc_no, status, received_at, updated_at, technician_name, customers(name), tools(brand, model)")
+      .neq("status", "cancelled")
+      .or(`status.neq.delivered,updated_at.gte."${since}"`)
+      .order("received_at", { ascending: true })
+      .limit(500);
+
+    const rows = (data ?? []) as unknown as (Row & { customers: { name: string } | null })[];
+    const ids = rows.map((r) => r.id);
+    const totals = new Map<string, number>();
+    if (ids.length) {
+      const { data: t } = await supabase
+        .from("repair_job_totals")
+        .select("repair_job_id, grand_total")
+        .in("repair_job_id", ids);
+      for (const r of t ?? []) totals.set(r.repair_job_id as string, Number(r.grand_total));
+    }
+
+    const jobs: BoardJob[] = rows.map((r) => ({
+      id: r.id,
+      doc_no: r.doc_no,
+      status: r.status,
+      received_at: r.received_at,
+      updated_at: r.updated_at,
+      technician_name: r.technician_name,
+      customer_name: r.customers?.name ?? "-",
+      tool_label: `${r.tools?.brand ?? ""} ${r.tools?.model ?? ""}`.trim(),
+      total: totals.get(r.id) ?? 0,
+    }));
+
+    return (
+      <div className="space-y-6">
+        {header}
+        <p className="text-xs text-zinc-500">
+          คอลัมน์ “ส่งมอบเรียบร้อย” แสดงเฉพาะ 30 วันล่าสุด · งานที่ยกเลิกดูได้ในมุมมองตาราง
+        </p>
+        <KanbanBoard jobs={jobs} canEdit={canEdit} />
+      </div>
+    );
+  }
 
   let query = supabase
     .from("repair_jobs")
     .select(
-      "id, doc_no, status, received_at, technician_name, customers(name, phone), tools(brand, model, serial_number)",
+      "id, doc_no, status, received_at, updated_at, technician_name, customers(name, phone), tools(brand, model, serial_number)",
     )
     .order("created_at", { ascending: false })
     .limit(100);
@@ -41,22 +120,10 @@ export default async function JobsPage({
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">งานซ่อม</h1>
-          <p className="text-sm text-zinc-500">มุมมอง Pipeline (Kanban) จะมาในเฟส 3</p>
-        </div>
-        {profile.role === "admin" && (
-          <Link
-            href="/jobs/new"
-            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
-          >
-            + รับแจ้งซ่อมใหม่
-          </Link>
-        )}
-      </header>
+      {header}
 
       <form className="flex flex-wrap gap-2">
+        <input type="hidden" name="view" value="list" />
         <input
           name="q"
           defaultValue={q}
@@ -90,7 +157,11 @@ export default async function JobsPage({
           <tbody className="divide-y divide-zinc-100">
             {rows.map((j) => (
               <tr key={j.id}>
-                <td className="px-4 py-2 font-mono">{j.doc_no}</td>
+                <td className="px-4 py-2 font-mono">
+                  <Link href={`/jobs/${j.id}`} className="font-semibold text-brand hover:underline">
+                    {j.doc_no}
+                  </Link>
+                </td>
                 <td className="px-4 py-2">{formatDate(j.received_at)}</td>
                 <td className="px-4 py-2">
                   {j.customers?.name}
@@ -107,8 +178,8 @@ export default async function JobsPage({
                   <StatusBadge status={j.status} />
                 </td>
                 <td className="px-4 py-2 text-right">
-                  <Link href={`/print/job/${j.id}`} className="text-brand hover:underline">
-                    ใบรับเครื่อง
+                  <Link href={`/print/job/${j.id}`} className="text-zinc-500 hover:underline">
+                    พิมพ์
                   </Link>
                 </td>
               </tr>

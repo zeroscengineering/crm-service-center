@@ -7,7 +7,7 @@ type Item = { href: string; label: string; adminOnly?: boolean; soon?: boolean }
 
 const ITEMS: Item[] = [
   { href: "/dashboard", label: "แดชบอร์ด" },
-  { href: "/jobs", label: "งานซ่อม" },
+  { href: "/jobs", label: "งานซ่อม (Pipeline)" },
   { href: "/jobs/new", label: "รับแจ้งซ่อมใหม่", adminOnly: true },
   { href: "/customers", label: "ลูกค้า & เครื่องมือ" },
   { href: "/track", label: "หน้าเช็กสถานะ (ลูกค้า) ↗" },
@@ -20,7 +20,8 @@ export default function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
       {ITEMS.filter((i) => !i.adminOnly || isAdmin).map((item) => {
         const active =
           pathname === item.href ||
-          (item.href === "/customers" && pathname.startsWith("/customers/"));
+          (item.href === "/customers" && pathname.startsWith("/customers/")) ||
+          (item.href === "/jobs" && pathname.startsWith("/jobs/") && pathname !== "/jobs/new");
         if (item.soon) {
           return (
             <span
