@@ -5,6 +5,7 @@ import { STATUSES, STATUS_LABEL, type RepairStatus } from "@/lib/constants";
 import { cleanSearch, formatDate, formatPhone } from "@/lib/format";
 import StatusBadge from "@/components/StatusBadge";
 import KanbanBoard, { type BoardJob } from "@/components/KanbanBoard";
+import JobsTable from "@/components/JobsTable";
 
 type Row = {
   id: string;
@@ -134,59 +135,7 @@ export default async function JobsPage({
         <button className="btn btn-secondary">ค้นหา</button>
       </form>
 
-      <div className="overflow-x-auto panel">
-        <table className="w-full text-sm">
-          <thead className="border-b border-line bg-steel/60 text-left text-[13px] text-muted">
-            <tr>
-              <th className="px-4 py-2 font-medium">เลขที่เอกสาร</th>
-              <th className="px-4 py-2 font-medium">วันที่รับ</th>
-              <th className="px-4 py-2 font-medium">ลูกค้า</th>
-              <th className="px-4 py-2 font-medium">เครื่องมือ</th>
-              <th className="px-4 py-2 font-medium">ช่าง</th>
-              <th className="px-4 py-2 font-medium">สถานะ</th>
-              <th className="px-4 py-2" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line/70">
-            {rows.map((j) => (
-              <tr key={j.id}>
-                <td className="px-4 py-2 font-mono">
-                  <Link href={`/jobs/${j.id}`} className="font-semibold text-brand hover:underline">
-                    {j.doc_no}
-                  </Link>
-                </td>
-                <td className="px-4 py-2">{formatDate(j.received_at)}</td>
-                <td className="px-4 py-2">
-                  {j.customers?.name}
-                  <span className="block text-xs text-muted">{formatPhone(j.customers?.phone)}</span>
-                </td>
-                <td className="px-4 py-2">
-                  {j.tools?.brand} {j.tools?.model}
-                  {j.tools?.serial_number && (
-                    <span className="block font-mono text-xs text-muted">S/N {j.tools.serial_number}</span>
-                  )}
-                </td>
-                <td className="px-4 py-2">{j.technician_name ?? "-"}</td>
-                <td className="px-4 py-2">
-                  <StatusBadge status={j.status} />
-                </td>
-                <td className="px-4 py-2 text-right">
-                  <Link href={`/print/job/${j.id}`} className="text-muted hover:underline">
-                    พิมพ์
-                  </Link>
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-muted">
-                  ไม่พบงานซ่อม
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <JobsTable rows={rows} canDelete={profile.role === "admin"} />
     </div>
   );
 }

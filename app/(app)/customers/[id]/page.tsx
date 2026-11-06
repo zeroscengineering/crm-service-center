@@ -9,6 +9,7 @@ import type { Customer, Tool } from "@/lib/types";
 import StatusBadge from "@/components/StatusBadge";
 import EditCustomerForm from "./EditCustomerForm";
 import UnlinkLineButton from "./UnlinkLineButton";
+import { DeleteCustomerButton } from "@/components/DeleteButtons";
 import { CustomerCarrierSelect } from "@/components/ShippingUI";
 import type { Carrier } from "@/lib/shipping";
 
@@ -75,6 +76,11 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         {Boolean(profile) && (
           <div className="mt-4">
             <EditCustomerForm customer={c} />
+            {profile.role === "admin" && (
+              <div className="mt-3 border-t border-line pt-3">
+                <DeleteCustomerButton customerId={c.id} name={c.name} jobCount={jobList.length} />
+              </div>
+            )}
           </div>
         )}
       </header>

@@ -12,6 +12,7 @@ import { adminConfigured } from "@/lib/supabase/admin";
 import { buildStatusMessage, getLineConfig, lineReady, loadJobContext } from "@/lib/line";
 import { siteUrl } from "@/lib/site-url";
 import LinePanel, { type LineLog } from "./LinePanel";
+import { DeleteJobButton } from "@/components/DeleteButtons";
 import { JobShippingPanel } from "@/components/ShippingUI";
 import type { Carrier, Shipment } from "@/lib/shipping";
 import { JobInfoForm, NoteForm, StatusControl } from "./JobPanels";
@@ -172,6 +173,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           >
             <Printer size={15} /> พิมพ์ใบรับเครื่อง
           </Link>
+          {profile.role === "admin" && <DeleteJobButton jobId={job.id} docNo={job.doc_no} />}
         </div>
       </header>
 
