@@ -1,8 +1,8 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useRef, useState, useTransition } from "react";
-import { Check, Copy, Tag as TagIcon, Trash2 } from "lucide-react";
-import { addCustomerNote, createCustomerTag, deleteCustomerNote, toggleCustomerTag, type SaveState } from "./actions";
+import { Check, Copy, Pencil, Tag as TagIcon, Trash2, X } from "lucide-react";
+import { renameCustomer, addCustomerNote, createCustomerTag, deleteCustomerNote, toggleCustomerTag, type SaveState } from "./actions";
 
 export type Tag = { id: string; name: string; color: string };
 
@@ -154,5 +154,68 @@ export function DeleteNoteButton({ customerId, noteId }: { customerId: string; n
     >
       <Trash2 size={13} />
     </button>
+  );
+}
+
+/** ชื่อลูกค้าที่หัวโปรไฟล์ กดดินสอเพื่อแก้ชื่อ */
+export function EditableName({ customerId, name }: { customerId: string; name: string }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(name);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  function save() {
+    if (value.trim() === name) return setEditing(false);
+    start(async () => {
+      const r = await renameCustomer(customerId, value);
+      if (r.error) setError(r.error);
+      else {
+        setError(null);
+        setEditing(false);
+      }
+    });
+  }
+
+  if (!editing) {
+    return (
+      <div className="group flex items-center gap-2">
+        <h1 className="break-words text-[26px] font-semibold leading-tight tracking-tight">{name}</h1>
+        <button
+          type="button"
+          onClick={() => {
+            setValue(name);
+            setEditing(true);
+          }}
+          className="btn btn-ghost btn-sm shrink-0 text-muted"
+          title="แก้ไขชื่อลูกค้า"
+        >
+          <Pencil size={14} /> แก้ชื่อ
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          autoFocus
+          className="field max-w-md text-lg font-semibold"
+          value={value}
+          maxLength={120}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") save();
+            if (e.key === "Escape") setEditing(false);
+          }}
+        />
+        <button type="button" onClick={save} disabled={pending} className="btn btn-dark btn-sm">
+          <Check size={14} /> {pending ? "กำลังบันทึก" : "บันทึก"}
+        </button>
+        <button type="button" onClick={() => setEditing(false)} className="btn btn-ghost btn-sm">
+          <X size={14} /> ยกเลิก
+        </button>
+      </div>
+      {error && <p className="mt-1 text-xs text-brand">{error}</p>}
+    </div>
   );
 }

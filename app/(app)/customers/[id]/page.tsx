@@ -26,7 +26,7 @@ import { DeleteCustomerButton } from "@/components/DeleteButtons";
 import { CustomerCarrierSelect } from "@/components/ShippingUI";
 import EditCustomerForm, { type EditableCustomer } from "./EditCustomerForm";
 import UnlinkLineButton from "./UnlinkLineButton";
-import { CopyValue, CustomerNoteForm, CustomerTagPicker, DeleteNoteButton, type Tag } from "./CustomerWidgets";
+import { CopyValue, EditableName, CustomerNoteForm, CustomerTagPicker, DeleteNoteButton, type Tag } from "./CustomerWidgets";
 
 export const dynamic = "force-dynamic";
 
@@ -142,6 +142,13 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
       : Promise.resolve({ data: [] }),
   ]);
 
+  // ชื่อ LINE เดิม (display name จากโปรไฟล์ LINE) — ไม่เปลี่ยนตามชื่อลูกค้าที่แก้
+  const { data: lineContact } = c.line_user_id
+    ? await supabase.from("line_contacts").select("display_name, picture_url").eq("line_user_id", c.line_user_id).maybeSingle()
+    : { data: null };
+  const lineName = (lineContact?.display_name as string | null | undefined) ?? null;
+  const linePic = (lineContact?.picture_url as string | null | undefined) ?? null;
+
   const events: TLEvent[] = [];
   for (const h of (histRes.data ?? []) as unknown as { repair_job_id: string; to_status: RepairStatus; created_at: string; profiles: { full_name: string } | null }[]) {
     events.push({
@@ -184,7 +191,6 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const timeline = events.slice(0, 60);
 
   const openJobs = jobList.filter((j) => j.status !== "delivered" && j.status !== "cancelled");
-  const displayName = c.company_name ? c.company_name : c.name;
 
   return (
     <div className="space-y-6">
@@ -194,10 +200,22 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
       {/* ---------- หัวโปรไฟล์ ---------- */}
       <header className="panel flex flex-wrap items-start justify-between gap-4 p-5">
+        <div className="flex min-w-0 items-start gap-4">
+          {linePic && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={linePic} alt="" className="h-14 w-14 shrink-0 rounded-full border border-line object-cover" />
+          )}
         <div className="min-w-0">
-          <h1 className="text-[26px] font-semibold leading-tight tracking-tight">{displayName}</h1>
+          {c.company_name && <p className="text-sm font-medium text-muted">{c.company_name}</p>}
+          <EditableName customerId={c.id} name={c.name} />
+          {lineName && (
+            <p className="mt-0.5 text-sm">
+              <span className="rounded bg-[#06C755]/10 px-1.5 py-0.5 text-xs font-medium text-[#05a347]">ชื่อ LINE</span>{" "}
+              <span className="text-ink">{lineName}</span>
+            </p>
+          )}
           <p className="mt-0.5 text-sm text-muted">
-            {c.company_name ? `${c.contact_person || c.name}  ` : ""}
+            {c.contact_person ? `ผู้ติดต่อ ${c.contact_person}  ` : ""}
             {formatPhone(c.phone)}
             {owner && `  ผู้ดูแล ${owner.name}`}
           </p>
@@ -208,6 +226,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               <p className="text-xs text-muted">แท็กและโน้ตภายใน: รัน SQL 0008 ก่อน</p>
             )}
           </div>
+        </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`/jobs/new?customer=${c.id}`} className="btn btn-primary">
@@ -248,6 +267,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                 )}
               </Info>
               <Info label="ผู้ดูแล">{owner?.name}</Info>
+              <Info label="ชื่อ LINE">{lineName}</Info>
               <Info label="LINE ID">{c.line_id}</Info>
               <Info label="LINE UID">
                 {c.line_user_id ? (

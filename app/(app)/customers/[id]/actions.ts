@@ -116,3 +116,18 @@ export async function createCustomerTag(customerId: string, name: string): Promi
   revalidatePath(`/customers/${customerId}`);
   return { ok: true };
 }
+
+/** เปลี่ยนชื่อลูกค้าอย่างเดียว (แก้จากหัวโปรไฟล์) — ชื่อ LINE เดิมยังเก็บไว้ใน line_contacts */
+export async function renameCustomer(customerId: string, name: string): Promise<SaveState> {
+  await requireStaff();
+  const clean = name.trim();
+  if (!clean) return { error: "กรุณากรอกชื่อ" };
+  if (clean.length > 120) return { error: "ชื่อยาวเกินไป" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("customers").update({ name: clean }).eq("id", customerId);
+  if (error) return { error: error.message };
+  revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/customers");
+  revalidatePath("/chat");
+  return { ok: true };
+}
