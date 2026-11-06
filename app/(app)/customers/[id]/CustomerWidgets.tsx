@@ -1,7 +1,10 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useRef, useState, useTransition } from "react";
-import { Check, Copy, Pencil, Tag as TagIcon, Trash2, X } from "lucide-react";
+import { Check, Copy, Palette, Pencil, Tag as TagIcon, Trash2, X } from "lucide-react";
+import TagColorPicker from "@/components/TagColorPicker";
+import { TAG_PALETTE } from "@/lib/tag-colors";
+import { updateTagColor } from "../../chat/actions";
 import { renameCustomer, addCustomerNote, createCustomerTag, deleteCustomerNote, toggleCustomerTag, type SaveState } from "./actions";
 
 export type Tag = { id: string; name: string; color: string };
@@ -30,6 +33,8 @@ export function CopyValue({ value }: { value: string }) {
 export function CustomerTagPicker({ customerId, allTags, selected }: { customerId: string; allTags: Tag[]; selected: string[] }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+  const [color, setColor] = useState<string>(TAG_PALETTE[allTags.length % TAG_PALETTE.length]);
+  const [recolor, setRecolor] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -59,43 +64,71 @@ export function CustomerTagPicker({ customerId, allTags, selected }: { customerI
         <TagIcon size={12} /> {chosen.length ? "แก้แท็ก" : "เพิ่มแท็ก"}
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-20 mt-1 w-64 rounded-[10px] border border-line bg-white p-2 shadow-[0_8px_24px_rgba(31,35,40,0.12)]">
+        <div className="absolute left-0 top-full z-20 mt-1 w-72 rounded-[10px] border border-line bg-white p-2 shadow-[0_8px_24px_rgba(31,35,40,0.12)]">
           <ul className="max-h-56 overflow-y-auto">
             {allTags.map((t) => (
-              <li key={t.id}>
-                <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-steel/60">
-                  <input
-                    type="checkbox"
-                    disabled={pending}
-                    checked={selected.includes(t.id)}
-                    onChange={(e) => start(async () => void (await toggleCustomerTag(customerId, t.id, e.target.checked)))}
-                  />
-                  <span className="rounded-full px-2 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: t.color }}>
-                    {t.name}
-                  </span>
-                </label>
+              <li key={t.id} className="rounded-md hover:bg-steel/60">
+                <div className="group flex items-center gap-2 px-2 py-1">
+                  <label className="flex flex-1 cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      disabled={pending}
+                      checked={selected.includes(t.id)}
+                      onChange={(e) => start(async () => void (await toggleCustomerTag(customerId, t.id, e.target.checked)))}
+                    />
+                    <span className="rounded-full px-2 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: t.color }}>
+                      {t.name}
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    title="เปลี่ยนสีแท็ก"
+                    onClick={() => setRecolor((r) => (r === t.id ? null : t.id))}
+                    className={`text-zinc-400 hover:text-ink ${recolor === t.id ? "block text-ink" : "hidden group-hover:block"}`}
+                  >
+                    <Palette size={14} />
+                  </button>
+                </div>
+                {recolor === t.id && (
+                  <div className="px-2 pb-2">
+                    <TagColorPicker
+                      value={t.color}
+                      disabled={pending}
+                      onChange={(c) => start(async () => void (await updateTagColor(t.id, c)))}
+                    />
+                  </div>
+                )}
               </li>
             ))}
             {allTags.length === 0 && <li className="px-2 py-1 text-xs text-muted">ยังไม่มีแท็ก</li>}
           </ul>
           <form
-            className="mt-2 flex gap-1 border-t border-line pt-2"
+            className="mt-2 space-y-2 border-t border-line pt-2"
             onSubmit={(e) => {
               e.preventDefault();
               start(async () => {
-                const r = await createCustomerTag(customerId, name);
+                const r = await createCustomerTag(customerId, name, color);
                 if (r.error) setErr(r.error);
                 else {
                   setName("");
                   setErr(null);
+                  setColor(TAG_PALETTE[(TAG_PALETTE.indexOf(color as (typeof TAG_PALETTE)[number]) + 1) % TAG_PALETTE.length]);
                 }
               });
             }}
           >
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="สร้างแท็กใหม่" className="field flex-1 py-1" />
-            <button disabled={pending || !name.trim()} className="btn btn-dark btn-sm">
-              สร้าง
-            </button>
+            <div className="flex gap-1">
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="สร้างแท็กใหม่" className="field min-w-0 flex-1 py-1" />
+              <button disabled={pending || !name.trim()} className="btn btn-dark btn-sm">
+                สร้าง
+              </button>
+            </div>
+            <TagColorPicker value={color} onChange={setColor} disabled={pending} />
+            {name.trim() && (
+              <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: color }}>
+                {name.trim()}
+              </span>
+            )}
           </form>
           {err && <p className="mt-1 text-xs text-rose-700">{err}</p>}
           <p className="mt-1 px-1 text-[11px] text-muted">ใช้รายการแท็กเดียวกับหน้าแชท</p>

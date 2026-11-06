@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isHexColor, randomTagColor } from "@/lib/tag-colors";
 import { requireProfile } from "@/lib/auth";
 import { adminConfigured } from "@/lib/supabase/admin";
 import { getLineConfig, lineReady, pushText } from "@/lib/line";
@@ -53,16 +54,15 @@ export async function linkChatCustomer(lineUserId: string, customerId: string | 
 }
 
 // ---------- แท็ก ----------
-const TAG_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#64748b"];
 
-export async function createTag(name: string, lineUserId?: string): Promise<ChatResult & { id?: string }> {
+export async function createTag(name: string, lineUserId?: string, pickedColor?: string): Promise<ChatResult & { id?: string }> {
   const p = await requireProfile();
   void p; // แอดมินและช่างทำได้
   const n = name.trim().slice(0, 40);
   if (!n) return { error: "กรุณาพิมพ์ชื่อแท็ก" };
   const { createClient } = await import("@/lib/supabase/server");
   const db = await createClient();
-  const color = TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
+  const color = isHexColor(pickedColor) ? pickedColor : randomTagColor();
   const { data, error } = await db.from("tags").upsert({ name: n, color }, { onConflict: "name", ignoreDuplicates: false }).select("id").single();
   if (error || !data) return { error: error?.message ?? "สร้างแท็กไม่ได้" };
   if (lineUserId) await db.from("contact_tags").upsert({ line_user_id: lineUserId, tag_id: data.id }, { ignoreDuplicates: true });
@@ -80,6 +80,20 @@ export async function toggleContactTag(lineUserId: string, tagId: string, on: bo
     : await db.from("contact_tags").delete().eq("line_user_id", lineUserId).eq("tag_id", tagId);
   if (error) return { error: error.message };
   revalidatePath("/chat");
+  return { ok: true };
+}
+
+/** เปลี่ยนสีแท็ก (มีผลทุกแชทและทุกลูกค้าที่ใช้แท็กนี้) */
+export async function updateTagColor(tagId: string, color: string): Promise<ChatResult> {
+  const p = await requireProfile();
+  void p; // แอดมินและช่างทำได้
+  if (!isHexColor(color)) return { error: "สีไม่ถูกต้อง" };
+  const { createClient } = await import("@/lib/supabase/server");
+  const db = await createClient();
+  const { error } = await db.from("tags").update({ color }).eq("id", tagId);
+  if (error) return { error: error.message };
+  revalidatePath("/chat");
+  revalidatePath("/customers", "layout");
   return { ok: true };
 }
 

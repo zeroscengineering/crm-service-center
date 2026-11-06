@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/auth";
 import { normalizePhone } from "@/lib/format";
+import { isHexColor, randomTagColor } from "@/lib/tag-colors";
 
 export type SaveState = { error?: string; ok?: boolean };
 
@@ -87,7 +88,6 @@ export async function deleteCustomerNote(customerId: string, noteId: string): Pr
 }
 
 // ---------- แท็ก ----------
-const TAG_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#64748b"];
 
 export async function toggleCustomerTag(customerId: string, tagId: string, on: boolean): Promise<SaveState> {
   await requireStaff();
@@ -101,7 +101,7 @@ export async function toggleCustomerTag(customerId: string, tagId: string, on: b
   return { ok: true };
 }
 
-export async function createCustomerTag(customerId: string, name: string): Promise<SaveState> {
+export async function createCustomerTag(customerId: string, name: string, pickedColor?: string): Promise<SaveState> {
   await requireStaff();
   const n = name.trim().slice(0, 40);
   if (!n) return { error: "กรุณาพิมพ์ชื่อแท็ก" };
@@ -109,7 +109,7 @@ export async function createCustomerTag(customerId: string, name: string): Promi
   // ใช้แท็กเดิมถ้ามีชื่อนี้แล้ว (ไม่เปลี่ยนสี)
   let { data } = await supabase.from("tags").select("id").eq("name", n).maybeSingle();
   if (!data) {
-    const color = TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
+    const color = isHexColor(pickedColor) ? pickedColor : randomTagColor();
     const ins = await supabase.from("tags").insert({ name: n, color }).select("id").single();
     if (ins.error || !ins.data) return { error: ins.error?.message ?? "สร้างแท็กไม่ได้" };
     data = ins.data;
