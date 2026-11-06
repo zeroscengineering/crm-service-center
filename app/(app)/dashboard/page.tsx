@@ -83,7 +83,7 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <p className="px-4 py-10 text-center text-sm text-zinc-500">
-            ยังไม่มีงานซ่อม — ฟอร์มรับแจ้งซ่อมจะมาในเฟส 2
+            ยังไม่มีงานซ่อม — เริ่มที่เมนู “รับแจ้งซ่อมใหม่”
           </p>
         )}
       </section>
