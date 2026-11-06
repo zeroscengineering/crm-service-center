@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-thai), ui-sans-serif, system-ui, sans-serif;
+  --color-brand: #c8102e;      /* แดงเครื่องมือช่าง */
+  --color-brand-dark: #9b0c23;
+}
+
+body {
+  @apply bg-zinc-50 text-zinc-900 antialiased;
+}
