@@ -20,6 +20,8 @@ import { siteUrl } from "@/lib/site-url";
 import { BackupButton, CopyText, DisconnectButton } from "./SettingsClient";
 import LineSettingsForm from "./LineSettingsForm";
 import CompanyForm from "./CompanyForm";
+import UsersManager, { type StaffRow } from "./UsersManager";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCompany } from "@/lib/company";
 import { addFriendUrl, DEFAULT_LINE_CONFIG, getBotInfo, getLineConfig, getQuota, lineReady, type BotInfo } from "@/lib/line";
 
@@ -139,13 +141,45 @@ export default async function SettingsPage({
 
   const company = await getCompany();
 
+  // ---------- ผู้ใช้งาน ----------
+  let staff: StaffRow[] = [];
+  let staffError: string | null = null;
+  if (hasServiceKey) {
+    try {
+      const adminDb = createAdminClient();
+      const [{ data: list, error: listErr }, { data: profs }] = await Promise.all([
+        adminDb.auth.admin.listUsers({ page: 1, perPage: 200 }),
+        adminDb.from("profiles").select("id, full_name, role"),
+      ]);
+      if (listErr) throw listErr;
+      const pById = new Map((profs ?? []).map((p) => [p.id as string, p]));
+      staff = list.users
+        .map((u) => {
+          const p = pById.get(u.id);
+          const bu = (u as { banned_until?: string | null }).banned_until;
+          const banned = Boolean(bu && new Date(bu) > new Date());
+          return {
+            id: u.id,
+            email: u.email ?? "",
+            full_name: (p?.full_name as string | undefined) ?? u.email ?? "",
+            role: ((p?.role as string | undefined) === "admin" ? "admin" : "technician") as StaffRow["role"],
+            active: !banned,
+            last_sign_in_at: u.last_sign_in_at ?? null,
+          };
+        })
+        .sort((a, b) => Number(b.active) - Number(a.active) || (a.role === b.role ? a.full_name.localeCompare(b.full_name, "th") : a.role === "admin" ? -1 : 1));
+    } catch (e) {
+      staffError = e instanceof Error ? e.message : "โหลดรายชื่อผู้ใช้ไม่ได้";
+    }
+  }
+
   const errorText = sp.drive_error ? ERRORS[sp.drive_error] ?? decodeURIComponent(sp.drive_error) : null;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <header>
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight">ตั้งค่า</h1>
-        <p className="text-sm text-muted">การเชื่อมต่อบริการภายนอก (เฉพาะแอดมิน)</p>
+        <p className="text-sm text-muted">ผู้ใช้งาน ข้อมูลบริษัท และการเชื่อมต่อบริการภายนอก (เฉพาะแอดมิน)</p>
       </header>
 
       {sp.drive === "connected" && (
@@ -159,6 +193,25 @@ export default async function SettingsPage({
       {errorText && (
         <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200">{errorText}</p>
       )}
+
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <h2 className="panel-title">ผู้ใช้งานและสิทธิ์</h2>
+            <p className="text-xs text-muted">เพิ่มพนักงาน กำหนดสิทธิ์ ตั้งรหัสผ่านใหม่ หรือปิดการใช้งาน</p>
+          </div>
+          <span className="text-xs text-muted">{staff.filter((u) => u.active).length} คนใช้งานอยู่</span>
+        </div>
+        <div className="panel-body">
+          {!hasServiceKey ? (
+            <p className="text-sm text-muted">ต้องตั้งค่า SUPABASE_SERVICE_ROLE_KEY ก่อน</p>
+          ) : staffError ? (
+            <p className="text-sm text-rose-700">{staffError}</p>
+          ) : (
+            <UsersManager users={staff} meId={profile.id} />
+          )}
+        </div>
+      </section>
 
       <section className="panel">
         <div className="panel-head">
