@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ExternalLink,
+  FileText,
   LayoutDashboard,
   MessageCircle,
   Plus,
@@ -19,6 +20,7 @@ type Item = { href: string; label: string; icon: LucideIcon; adminOnly?: boolean
 const ITEMS: Item[] = [
   { href: "/dashboard", label: "แดชบอร์ด", icon: LayoutDashboard },
   { href: "/jobs", label: "งานซ่อม", icon: Wrench, match: "/jobs" },
+  { href: "/quotes", label: "ใบเสนอราคา", icon: FileText, match: "/quotes" },
   { href: "/chat", label: "แชทลูกค้า", icon: MessageCircle, match: "/chat" },
   { href: "/customers", label: "ลูกค้า", icon: Users, match: "/customers" },
   { href: "/shipping", label: "ขนส่ง", icon: Truck, match: "/shipping" },

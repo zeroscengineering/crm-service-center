@@ -19,6 +19,8 @@ const TABLES = [
   "contact_tags",
   "carriers",
   "shipments",
+  "quotations",
+  "quotation_items",
   "profiles",
 ] as const;
 

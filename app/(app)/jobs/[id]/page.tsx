@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ArrowLeft, MessageCircle, Printer, Truck } from "lucide-react";
+import { ArrowLeft, FilePlus2, FileText, MessageCircle, Printer, Truck } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { STATUS_LABEL, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
-import { formatDate, formatDateTime, formatPhone } from "@/lib/format";
+import { formatDate, formatDateTime, formatMoney, formatPhone } from "@/lib/format";
 import StatusBadge from "@/components/StatusBadge";
 import FileGallery, { type JobFile } from "@/components/FileGallery";
 import { driveReady } from "@/lib/google-drive";
@@ -14,7 +14,8 @@ import { siteUrl } from "@/lib/site-url";
 import LinePanel, { type LineLog } from "./LinePanel";
 import { JobShippingPanel } from "@/components/ShippingUI";
 import type { Carrier, Shipment } from "@/lib/shipping";
-import { CostPanel, JobInfoForm, NoteForm, StatusControl, type Part } from "./JobPanels";
+import { JobInfoForm, NoteForm, StatusControl } from "./JobPanels";
+import { QUOTE_STATUS_COLOR, QUOTE_STATUS_LABEL, type QuoteStatus } from "@/lib/quote";
 
 type Job = {
   id: string;
@@ -77,7 +78,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const canEdit = profile.role === "admin";
   const supabase = await createClient();
 
-  const [jobRes, partsRes, historyRes, notesRes, staffRes, filesRes, lineRes, shipRes, carrierRes] = await Promise.all([
+  const [jobRes, quoteRes, historyRes, notesRes, staffRes, filesRes, lineRes, shipRes, carrierRes] = await Promise.all([
     supabase
       .from("repair_jobs")
       .select(
@@ -85,7 +86,11 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       )
       .eq("id", id)
       .maybeSingle(),
-    supabase.from("repair_parts").select("id, part_name, part_code, quantity, unit_price").eq("repair_job_id", id).order("created_at"),
+    supabase
+      .from("quotations")
+      .select("id, quote_no, issue_date, grand_total, status")
+      .eq("repair_job_id", id)
+      .order("created_at", { ascending: false }),
     supabase
       .from("job_status_history")
       .select("id, from_status, to_status, created_at, profiles(full_name)")
@@ -114,7 +119,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
   if (!jobRes.data) notFound();
   const job = jobRes.data as unknown as Job;
-  const parts = (partsRes.data ?? []) as Part[];
+  const quotesReady = !quoteRes.error;
+  const quotes = (quoteRes.data ?? []) as { id: string; quote_no: string; issue_date: string; grand_total: number; status: QuoteStatus }[];
   const history = (historyRes.data ?? []) as unknown as History[];
   const notes = (notesRes.data ?? []) as unknown as Note[];
   const files = (filesRes.data ?? []) as JobFile[];
@@ -185,14 +191,46 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             {canEdit && <JobInfoForm job={job} technicians={technicians} />}
           </Card>
 
-          <Card title="อะไหล่และค่าใช้จ่าย">
-            <CostPanel
-              jobId={job.id}
-              parts={parts}
-              laborCost={Number(job.labor_cost)}
-              quotationPrice={job.quotation_price === null ? null : Number(job.quotation_price)}
-              canEdit={canEdit}
-            />
+          <Card
+            title={
+              <>
+                <FileText size={16} className="text-muted" /> ใบเสนอราคา ({quotes.length})
+              </>
+            }
+            action={
+              canEdit &&
+              quotesReady && (
+                <Link href={`/quotes/new?job=${job.id}`} className="btn btn-primary btn-sm">
+                  <FilePlus2 size={14} /> สร้างใบเสนอราคา
+                </Link>
+              )
+            }
+          >
+            {!quotesReady ? (
+              <p className="text-sm text-muted">รัน SQL 0005_quotations.sql ก่อนเพื่อใช้ใบเสนอราคา</p>
+            ) : quotes.length === 0 ? (
+              <p className="text-sm text-muted">ยังไม่มีใบเสนอราคาสำหรับงานนี้</p>
+            ) : (
+              <ul className="divide-y divide-line/70">
+                {quotes.map((qt) => (
+                  <li key={qt.id} className="flex flex-wrap items-center gap-3 py-2.5">
+                    <Link href={`/quotes/${qt.id}`} className="font-mono text-[13px] font-semibold hover:text-brand">
+                      {qt.quote_no}
+                    </Link>
+                    <span className="text-xs text-muted">{formatDate(qt.issue_date)}</span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${QUOTE_STATUS_COLOR[qt.status]}`}
+                    >
+                      {QUOTE_STATUS_LABEL[qt.status]}
+                    </span>
+                    <span className="ml-auto font-mono font-semibold tabular-nums">฿ {formatMoney(qt.grand_total)}</span>
+                    <Link href={`/print/quote/${qt.id}`} target="_blank" className="btn btn-ghost btn-sm" title="พิมพ์">
+                      <Printer size={14} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
 
           <Card title={`บันทึกการซ่อม / แชท (${notes.length})`}>

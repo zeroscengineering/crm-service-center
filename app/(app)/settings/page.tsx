@@ -19,6 +19,8 @@ import { formatDateTime } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url";
 import { BackupButton, CopyText, DisconnectButton } from "./SettingsClient";
 import LineSettingsForm from "./LineSettingsForm";
+import CompanyForm from "./CompanyForm";
+import { getCompany } from "@/lib/company";
 import { addFriendUrl, DEFAULT_LINE_CONFIG, getBotInfo, getLineConfig, getQuota, lineReady, type BotInfo } from "@/lib/line";
 
 export const dynamic = "force-dynamic";
@@ -135,6 +137,8 @@ export default async function SettingsPage({
     supabaseLine.from("line_messages").select("id", { count: "exact", head: true }),
   ]);
 
+  const company = await getCompany();
+
   const errorText = sp.drive_error ? ERRORS[sp.drive_error] ?? decodeURIComponent(sp.drive_error) : null;
 
   return (
@@ -155,6 +159,22 @@ export default async function SettingsPage({
       {errorText && (
         <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200">{errorText}</p>
       )}
+
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <h2 className="panel-title">ข้อมูลบริษัท</h2>
+            <p className="text-xs text-muted">ใช้เป็นหัวกระดาษใบเสนอราคา</p>
+          </div>
+        </div>
+        <div className="panel-body">
+          {hasServiceKey && tableReady ? (
+            <CompanyForm company={company} />
+          ) : (
+            <p className="text-sm text-muted">ต้องตั้งค่า SUPABASE_SERVICE_ROLE_KEY และรัน SQL 0002 ก่อน</p>
+          )}
+        </div>
+      </section>
 
       <section className="panel">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">

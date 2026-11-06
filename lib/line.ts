@@ -190,7 +190,8 @@ export async function loadJobContext(jobId: string, siteUrl: string) {
     brand: j.tools?.brand ?? "",
     model: j.tools?.model ?? "",
     quotation_price: j.quotation_price === null ? null : Number(j.quotation_price),
-    grand_total: Number(tot?.grand_total ?? 0),
+    // ยอดจากใบเสนอราคา (quotation_price) ถ้าไม่มีรายการอะไหล่เดิม
+    grand_total: Number(tot?.grand_total ?? 0) || (j.quotation_price === null ? 0 : Number(j.quotation_price)),
     track_url: `${siteUrl}/track?doc=${encodeURIComponent(j.doc_no)}`,
   };
   return { ctx, customerId: j.customer_id, lineUserId: j.customers?.line_user_id ?? null };

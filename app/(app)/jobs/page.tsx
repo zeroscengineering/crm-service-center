@@ -55,13 +55,13 @@ export default async function JobsPage({
     const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
     const { data } = await supabase
       .from("repair_jobs")
-      .select("id, doc_no, status, received_at, updated_at, technician_name, customers(name), tools(brand, model)")
+      .select("id, doc_no, status, received_at, updated_at, technician_name, quotation_price, customers(name), tools(brand, model)")
       .neq("status", "cancelled")
       .or(`status.neq.delivered,updated_at.gte."${since}"`)
       .order("received_at", { ascending: true })
       .limit(500);
 
-    const rows = (data ?? []) as unknown as (Row & { customers: { name: string } | null })[];
+    const rows = (data ?? []) as unknown as (Row & { customers: { name: string } | null; quotation_price: number | null })[];
     const ids = rows.map((r) => r.id);
     const totals = new Map<string, number>();
     if (ids.length) {
@@ -81,7 +81,7 @@ export default async function JobsPage({
       technician_name: r.technician_name,
       customer_name: r.customers?.name ?? "-",
       tool_label: `${r.tools?.brand ?? ""} ${r.tools?.model ?? ""}`.trim(),
-      total: totals.get(r.id) ?? 0,
+      total: totals.get(r.id) || Number(r.quotation_price ?? 0),
     }));
 
     return (
