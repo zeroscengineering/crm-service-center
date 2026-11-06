@@ -75,7 +75,8 @@ function Info({ label, children }: { label: string; children: React.ReactNode })
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const profile = await requireProfile();
-  const canEdit = profile.role === "admin";
+  const canEdit = true; // แอดมินและช่างแก้ไขงานได้
+  void profile;
   const supabase = await createClient();
 
   const [jobRes, quoteRes, historyRes, notesRes, staffRes, filesRes, lineRes, shipRes, carrierRes] = await Promise.all([

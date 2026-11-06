@@ -37,7 +37,8 @@ export default async function ShippingPage({
   searchParams: Promise<{ tab?: string; status?: string; carrier?: string; dir?: string; q?: string }>;
 }) {
   const profile = await requireProfile();
-  const canEdit = profile.role === "admin";
+  const canEdit = true; // งานขนส่งประจำวัน: แอดมินและช่าง
+  const isAdmin = profile.role === "admin"; // ตั้งค่ารายชื่อขนส่ง
   const sp = await searchParams;
   const tab = TABS.some((t) => t.key === sp.tab) ? sp.tab! : "list";
   const supabase = await createClient();
@@ -89,7 +90,7 @@ export default async function ShippingPage({
             ลิงก์ติดตาม: ใส่ <code>{"{tracking}"}</code> ตรงตำแหน่งเลขพัสดุ ระบบจะสร้างลิงก์ให้อัตโนมัติ (ส่งให้ลูกค้าทาง LINE ได้) ·
             “ลำดับ” น้อย = แสดงก่อน
           </p>
-          {canEdit ? (
+          {isAdmin ? (
             <>
               <div className="hidden gap-2 pb-1 text-xs text-muted sm:grid sm:grid-cols-[2fr_3fr_1.2fr_60px_auto_auto]">
                 <span>ชื่อ</span>

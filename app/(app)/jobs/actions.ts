@@ -12,7 +12,7 @@ export type ActionResult = { ok?: boolean; error?: string; info?: string };
 /** ตรวจสิทธิ์แอดมินแบบคืน error แทนการ throw (ให้ UI แสดงข้อความได้) */
 async function adminClient() {
   const profile = await requireProfile();
-  if (profile.role !== "admin") return { error: "เฉพาะแอดมินเท่านั้นที่แก้ไขข้อมูลได้" } as const;
+  if (profile.role !== "admin" && profile.role !== "technician") return { error: "ไม่มีสิทธิ์แก้ไขข้อมูล" } as const;
   return { supabase: await createClient(), profile } as const;
 }
 

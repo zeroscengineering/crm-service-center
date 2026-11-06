@@ -12,7 +12,7 @@ const ALLOWED = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/;
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = await apiAuth(true);
+  const auth = await apiAuth(false);
   if ("res" in auth) return auth.res;
   const { supabase } = auth;
 

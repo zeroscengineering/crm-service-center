@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-/** ตรวจสิทธิ์ใน Route Handler — คืน supabase client หรือ response error */
+/** ตรวจสิทธิ์ใน Route Handler — requireAdmin=true เฉพาะการตั้งค่าระบบ, false = พนักงานทุกคน */
 export async function apiAuth(requireAdmin: boolean) {
   const supabase = await createClient();
   const { data: cd } = await supabase.auth.getClaims();

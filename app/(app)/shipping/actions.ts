@@ -9,9 +9,16 @@ import { trackingLink, type ShipmentStatus } from "@/lib/shipping";
 
 export type ShipResult = { ok?: boolean; error?: string; info?: string };
 
+/** งานขนส่งประจำวัน — แอดมินและช่างทำได้ */
 async function admin() {
   const p = await requireProfile();
-  if (p.role !== "admin") return { error: "เฉพาะแอดมินเท่านั้นที่แก้ไขได้" } as const;
+  return { supabase: await createClient(), profile: p } as const;
+}
+
+/** ตั้งค่ารายชื่อขนส่ง — เฉพาะแอดมิน */
+async function systemAdmin() {
+  const p = await requireProfile();
+  if (p.role !== "admin") return { error: "เฉพาะแอดมินเท่านั้นที่ตั้งค่ารายชื่อขนส่งได้" } as const;
   return { supabase: await createClient(), profile: p } as const;
 }
 
@@ -26,7 +33,7 @@ function refresh(jobId?: string | null) {
 
 // ---------- ตั้งค่าขนส่ง ----------
 export async function saveCarrier(_p: ShipResult, fd: FormData): Promise<ShipResult> {
-  const a = await admin();
+  const a = await systemAdmin();
   if ("error" in a) return { error: a.error };
   const id = s(fd, "id");
   const name = s(fd, "name");
@@ -50,7 +57,7 @@ export async function saveCarrier(_p: ShipResult, fd: FormData): Promise<ShipRes
 }
 
 export async function deleteCarrier(id: string): Promise<ShipResult> {
-  const a = await admin();
+  const a = await systemAdmin();
   if ("error" in a) return { error: a.error };
   const { error } = await a.supabase.from("carriers").delete().eq("id", id);
   if (error) return { error: error.message };

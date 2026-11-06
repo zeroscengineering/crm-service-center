@@ -33,7 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
           <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate text-sm font-medium">{profile.full_name}</p>
-            <p className="text-xs text-zinc-400">{isAdmin ? "แอดมิน" : "ช่าง (ดูอย่างเดียว)"}</p>
+            <p className="text-xs text-zinc-400">{isAdmin ? "แอดมิน" : "ช่าง"}</p>
           </div>
           <form action="/auth/signout" method="post">
             <button title="ออกจากระบบ" className="rounded-md p-1.5 text-zinc-400 hover:bg-white/10 hover:text-white">

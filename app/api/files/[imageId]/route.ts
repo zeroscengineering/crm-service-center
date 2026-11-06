@@ -36,7 +36,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ ima
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ imageId: string }> }) {
   const { imageId } = await params;
-  const auth = await apiAuth(true);
+  const auth = await apiAuth(false);
   if ("res" in auth) return auth.res;
 
   const { data: img } = await auth.supabase

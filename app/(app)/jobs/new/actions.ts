@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { BRANDS, type Brand } from "@/lib/constants";
 import { cleanSearch, normalizePhone } from "@/lib/format";
 import type { CustomerWithTools } from "@/lib/types";
@@ -13,7 +13,7 @@ import { nextDocNo } from "@/lib/docno";
 
 /** ค้นหาลูกค้าจากชื่อหรือเบอร์โทร (ใช้ในฟอร์มรับแจ้งซ่อม) */
 export async function searchCustomers(query: string): Promise<CustomerWithTools[]> {
-  await requireAdmin();
+  await requireStaff();
   const q = cleanSearch(query);
   if (q.length < 2) return [];
 
@@ -59,7 +59,7 @@ function clean(list: string[]) {
 }
 
 export async function createJob(_prev: CreateJobState, fd: FormData): Promise<CreateJobState> {
-  await requireAdmin();
+  await requireStaff();
   const supabase = await createClient();
   const fieldErrors: Record<string, string> = {};
 

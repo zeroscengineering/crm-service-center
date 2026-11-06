@@ -272,7 +272,7 @@ export default async function ChatPage({
                     lineUserId={selected.line_user_id}
                     allTags={allTags}
                     selected={tagsOf.get(selected.line_user_id) ?? []}
-                    canEdit={profile.role === "admin"}
+                    canEdit={Boolean(profile)}
                   />
                 </div>
               )}
@@ -283,7 +283,7 @@ export default async function ChatPage({
             <Conversation
               lineUserId={selected.line_user_id}
               messages={messages}
-              canReply={profile.role === "admin" && mode !== null}
+              canReply={Boolean(profile) && mode !== null}
               mode={mode}
             />
 
@@ -298,13 +298,13 @@ export default async function ChatPage({
                 ) : (
                   <p className="text-sm text-muted">ยังไม่ได้ผูก</p>
                 )}
-                {profile.role === "admin" && (
+                {Boolean(profile) && (
                   <div className="mt-2">
                     <LinkCustomer lineUserId={selected.line_user_id} current={selected.customers} />
                   </div>
                 )}
               </div>
-              {profile.role === "admin" && (
+              {Boolean(profile) && (
                 <Link
                   href={`/jobs/new?line=${encodeURIComponent(selected.line_user_id)}${
                     selected.customers
@@ -329,7 +329,7 @@ export default async function ChatPage({
                           </span>
                         </Link>
                         <div className="mt-1.5">
-                          {profile.role === "admin" ? (
+                          {Boolean(profile) ? (
                             <div className="[&_button]:hidden [&_select]:w-full [&_select]:py-1 [&_select]:text-xs">
                               <StatusControl jobId={j.id} status={j.status} />
                             </div>

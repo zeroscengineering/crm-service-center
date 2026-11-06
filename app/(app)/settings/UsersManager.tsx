@@ -15,8 +15,8 @@ export type StaffRow = {
 };
 
 const ROLE_HELP = {
-  admin: "แอดมิน: รับแจ้งซ่อม แก้ไขทุกอย่าง ตอบแชท ตั้งค่าระบบ",
-  technician: "ช่าง: ดูได้ทุกหน้า แต่แก้ไขข้อมูลไม่ได้",
+  admin: "แอดมิน: ทำได้ทุกอย่าง รวมถึงตั้งค่าระบบ",
+  technician: "ช่าง: รับแจ้งซ่อม แก้ไขงาน ใบเสนอราคา ตอบแชท ขนส่ง แต่ตั้งค่าระบบไม่ได้",
 };
 
 function Row({ u, isMe }: { u: StaffRow; isMe: boolean }) {
@@ -213,10 +213,10 @@ export default function UsersManager({ users, meId }: { users: StaffRow[]; meId:
     <div className="space-y-4">
       <div className="grid gap-2 text-sm sm:grid-cols-2">
         <p className="rounded-md bg-steel/60 px-3 py-2">
-          <span className="font-semibold">แอดมิน</span> <span className="text-muted">รับแจ้งซ่อม แก้ไขทุกอย่าง ตอบแชท และตั้งค่าระบบ</span>
+          <span className="font-semibold">แอดมิน</span> <span className="text-muted">ทำได้ทุกอย่าง รวมถึงตั้งค่าระบบ (ผู้ใช้งาน บริษัท Google Drive LINE รายชื่อขนส่ง)</span>
         </p>
         <p className="rounded-md bg-steel/60 px-3 py-2">
-          <span className="font-semibold">ช่าง</span> <span className="text-muted">ดูได้ทุกหน้า แต่แก้ไขข้อมูลไม่ได้</span>
+          <span className="font-semibold">ช่าง</span> <span className="text-muted">รับแจ้งซ่อม แก้ไขงาน ใบเสนอราคา ตอบแชท ขนส่ง แต่เข้าหน้าตั้งค่าระบบไม่ได้</span>
         </p>
       </div>
       <div className="overflow-x-auto rounded-[10px] border border-line">

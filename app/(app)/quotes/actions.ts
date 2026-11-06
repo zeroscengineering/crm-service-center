@@ -31,7 +31,7 @@ export type QuoteResult = { ok?: boolean; error?: string; id?: string };
 
 async function admin() {
   const p = await requireProfile();
-  if (p.role !== "admin") return { error: "เฉพาะแอดมินเท่านั้นที่แก้ไขได้" } as const;
+  void p; // แอดมินและช่างออกใบเสนอราคาได้
   return { db: await createClient() } as const;
 }
 

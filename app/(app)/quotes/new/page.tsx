@@ -23,7 +23,7 @@ type JobRow = {
 
 export default async function NewQuotePage({ searchParams }: { searchParams: Promise<{ job?: string }> }) {
   const profile = await requireProfile();
-  if (profile.role !== "admin") redirect("/quotes");
+  void profile;
   const { job: jobId } = await searchParams;
   const supabase = await createClient();
 

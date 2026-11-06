@@ -59,7 +59,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         <p className="mt-1 text-xs text-zinc-400">
           ลงทะเบียน {formatDate(c.created_at)} · LINE แจ้งเตือน:{" "}
           {c.line_user_id ? "เชื่อมแล้ว " : "ยังไม่เชื่อม"}
-          {c.line_user_id && profile.role === "admin" && <UnlinkLineButton customerId={c.id} />}
+          {c.line_user_id && Boolean(profile) && <UnlinkLineButton customerId={c.id} />}
         </p>
         {!carrierErr && (
           <div className="mt-2 flex items-center gap-2 text-sm">
@@ -68,11 +68,11 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               customerId={c.id}
               value={(customer as { default_carrier_id?: string | null }).default_carrier_id ?? null}
               carriers={carriers}
-              canEdit={profile.role === "admin"}
+              canEdit={Boolean(profile)}
             />
           </div>
         )}
-        {profile.role === "admin" && (
+        {Boolean(profile) && (
           <div className="mt-4">
             <EditCustomerForm customer={c} />
           </div>

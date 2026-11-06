@@ -54,7 +54,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
         <ArrowLeft size={15} /> ใบเสนอราคาทั้งหมด
       </Link>
       <PageHeader title={<span className="font-mono">{initial.quote_no}</span>} description={initial.customer_name} />
-      <QuoteEditor initial={initial} canEdit={profile.role === "admin"} jobDocNo={jobDocNo} />
+      <QuoteEditor initial={initial} canEdit={Boolean(profile)} jobDocNo={jobDocNo} />
     </div>
   );
 }

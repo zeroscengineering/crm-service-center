@@ -35,7 +35,15 @@ export async function requireProfile(): Promise<Profile & { email: string }> {
   return p;
 }
 
-/** ใช้ใน Server Action ที่แก้ไขข้อมูล — ช่างจะถูกปฏิเสธ */
+/**
+ * สิทธิ์งานประจำวัน (รับแจ้งซ่อม แก้ไขงาน ใบเสนอราคา แชท ขนส่ง) — แอดมินและช่างทำได้ทั้งคู่
+ * (มีแค่ 2 บทบาท จึงเท่ากับ "ผู้ที่ล็อกอินแล้ว")
+ */
+export async function requireStaff() {
+  return requireProfile();
+}
+
+/** ใช้กับการตั้งค่าระบบเท่านั้น (ผู้ใช้งาน บริษัท Google Drive LINE รายชื่อขนส่ง) — ช่างจะถูกปฏิเสธ */
 export async function requireAdmin() {
   const profile = await requireProfile();
   if (profile.role !== "admin") {

@@ -35,7 +35,7 @@ export default function SidebarNav({ isAdmin, badges = {} }: { isAdmin: boolean;
 
   return (
     <nav className="flex gap-1 md:flex-col md:gap-0.5">
-      {isAdmin && (
+      {(
         <Link
           href="/jobs/new"
           className={`flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md md:mb-3 px-3 py-2 text-sm font-semibold transition-colors ${

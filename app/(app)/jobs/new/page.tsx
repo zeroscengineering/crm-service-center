@@ -12,7 +12,7 @@ export default async function NewJobPage({
   searchParams: Promise<{ customer?: string; line?: string; name?: string }>;
 }) {
   const profile = await requireProfile();
-  if (profile.role !== "admin") redirect("/jobs");
+  void profile;
   const sp = await searchParams;
 
   const supabase = await createClient();

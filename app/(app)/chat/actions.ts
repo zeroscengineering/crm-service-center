@@ -10,7 +10,7 @@ export type ChatResult = { ok?: boolean; error?: string; info?: string };
 
 async function guard() {
   const p = await requireProfile();
-  if (p.role !== "admin") return { error: "เฉพาะแอดมินเท่านั้นที่ตอบแชทได้" } as const;
+  void p; // แอดมินและช่างตอบแชทได้
   if (!adminConfigured()) return { error: "ยังไม่ได้ตั้ง SUPABASE_SERVICE_ROLE_KEY" } as const;
   return { profile: p } as const;
 }
@@ -57,7 +57,7 @@ const TAG_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b8
 
 export async function createTag(name: string, lineUserId?: string): Promise<ChatResult & { id?: string }> {
   const p = await requireProfile();
-  if (p.role !== "admin") return { error: "เฉพาะแอดมินเท่านั้น" };
+  void p; // แอดมินและช่างทำได้
   const n = name.trim().slice(0, 40);
   if (!n) return { error: "กรุณาพิมพ์ชื่อแท็ก" };
   const { createClient } = await import("@/lib/supabase/server");
@@ -72,7 +72,7 @@ export async function createTag(name: string, lineUserId?: string): Promise<Chat
 
 export async function toggleContactTag(lineUserId: string, tagId: string, on: boolean): Promise<ChatResult> {
   const p = await requireProfile();
-  if (p.role !== "admin") return { error: "เฉพาะแอดมินเท่านั้น" };
+  void p; // แอดมินและช่างทำได้
   const { createClient } = await import("@/lib/supabase/server");
   const db = await createClient();
   const { error } = on
@@ -85,7 +85,7 @@ export async function toggleContactTag(lineUserId: string, tagId: string, on: bo
 
 export async function deleteTag(tagId: string): Promise<ChatResult> {
   const p = await requireProfile();
-  if (p.role !== "admin") return { error: "เฉพาะแอดมินเท่านั้น" };
+  void p; // แอดมินและช่างทำได้
   const { createClient } = await import("@/lib/supabase/server");
   const db = await createClient();
   const { error } = await db.from("tags").delete().eq("id", tagId);

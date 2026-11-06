@@ -26,7 +26,8 @@ export default async function JobsPage({
   const { q = "", status = "", view = "board" } = await searchParams;
   const supabase = await createClient();
   const isBoard = view !== "list";
-  const canEdit = profile.role === "admin";
+  const canEdit = true; // แอดมินและช่างแก้ไขงานได้
+  void profile;
 
   const tabs = (
     <div className="inline-flex rounded-lg border border-line bg-white p-0.5 text-sm">

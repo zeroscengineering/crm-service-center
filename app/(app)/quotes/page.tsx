@@ -53,7 +53,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         title="ใบเสนอราคา"
         description="ออกใบเสนอราคาให้ลูกค้า พิมพ์ หรือบันทึกเป็น PDF"
         actions={
-          profile.role === "admin" && (
+          profile && (
             <Link href="/quotes/new" className="btn btn-primary">
               <FilePlus2 size={16} /> สร้างใบเสนอราคา
             </Link>
