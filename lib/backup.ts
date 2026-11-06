@@ -21,6 +21,8 @@ const TABLES = [
   "shipments",
   "quotations",
   "quotation_items",
+  "customer_notes",
+  "customer_tags",
   "profiles",
 ] as const;
 

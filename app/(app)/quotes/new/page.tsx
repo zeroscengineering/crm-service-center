@@ -21,10 +21,10 @@ type JobRow = {
   tools: { brand: string; model: string; serial_number: string | null } | null;
 };
 
-export default async function NewQuotePage({ searchParams }: { searchParams: Promise<{ job?: string }> }) {
+export default async function NewQuotePage({ searchParams }: { searchParams: Promise<{ job?: string; customer?: string }> }) {
   const profile = await requireProfile();
   void profile;
-  const { job: jobId } = await searchParams;
+  const { job: jobId, customer: customerParam } = await searchParams;
   const supabase = await createClient();
 
   let job: JobRow | null = null;
@@ -51,16 +51,25 @@ export default async function NewQuotePage({ searchParams }: { searchParams: Pro
     }
   }
 
+  // ข้อมูลลูกค้า (ชื่อบริษัท / เลขผู้เสียภาษี) จากหน้าลูกค้า
+  const custId = job?.customer_id ?? customerParam ?? null;
+  type Cust = { id: string; name: string; phone: string; address: string | null; company_name?: string | null; tax_id?: string | null; tax_branch?: string | null };
+  let cust: Cust | null = null;
+  if (custId) {
+    const { data } = await supabase.from("customers").select("*").eq("id", custId).maybeSingle();
+    cust = (data as Cust) ?? null;
+  }
+
   const tool = job?.tools ? `${job.tools.brand} ${job.tools.model}${job.tools.serial_number ? ` S/N ${job.tools.serial_number}` : ""}` : "";
   const initial: QuoteInput = {
     quote_no: await nextQuoteNo(),
     repair_job_id: job?.id ?? null,
-    customer_id: job?.customer_id ?? null,
-    customer_name: job?.customers?.name ?? "",
-    customer_address: job?.customers?.address ?? "",
-    customer_phone: job?.customers?.phone ?? "",
-    customer_tax_id: "",
-    customer_branch: "",
+    customer_id: cust?.id ?? job?.customer_id ?? null,
+    customer_name: cust?.company_name || cust?.name || job?.customers?.name || "",
+    customer_address: cust?.address ?? job?.customers?.address ?? "",
+    customer_phone: cust?.phone ?? job?.customers?.phone ?? "",
+    customer_tax_id: cust?.tax_id ?? "",
+    customer_branch: cust?.tax_branch ?? "",
     subject: job ? `ค่าซ่อม ${tool} (งานซ่อมเลขที่ ${job.doc_no})` : "",
     issue_date: todayBangkok(),
     valid_days: 30,
@@ -75,10 +84,10 @@ export default async function NewQuotePage({ searchParams }: { searchParams: Pro
   return (
     <div>
       <Link
-        href={job ? `/jobs/${job.id}` : "/quotes"}
+        href={job ? `/jobs/${job.id}` : cust ? `/customers/${cust.id}` : "/quotes"}
         className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"
       >
-        <ArrowLeft size={15} /> {job ? "กลับไปงานซ่อม" : "ใบเสนอราคาทั้งหมด"}
+        <ArrowLeft size={15} /> {job ? "กลับไปงานซ่อม" : cust ? "กลับไปหน้าลูกค้า" : "ใบเสนอราคาทั้งหมด"}
       </Link>
       <PageHeader title="สร้างใบเสนอราคา" />
       <QuoteEditor initial={initial} canEdit jobDocNo={job?.doc_no ?? null} />
