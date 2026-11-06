@@ -12,6 +12,7 @@ export type ShipResult = { ok?: boolean; error?: string; info?: string };
 /** งานขนส่งประจำวัน — แอดมินและช่างทำได้ */
 async function admin() {
   const p = await requireProfile();
+  if (p.role !== "admin" && p.role !== "technician") return { error: "ไม่มีสิทธิ์แก้ไขข้อมูล" } as const;
   return { supabase: await createClient(), profile: p } as const;
 }
 

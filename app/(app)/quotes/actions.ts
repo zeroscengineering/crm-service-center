@@ -31,7 +31,8 @@ export type QuoteResult = { ok?: boolean; error?: string; id?: string };
 
 async function admin() {
   const p = await requireProfile();
-  void p; // แอดมินและช่างออกใบเสนอราคาได้
+  // แอดมินและช่างออกใบเสนอราคาได้
+  if (p.role !== "admin" && p.role !== "technician") return { error: "ไม่มีสิทธิ์แก้ไขข้อมูล" } as const;
   return { db: await createClient() } as const;
 }
 
