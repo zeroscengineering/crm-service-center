@@ -7,6 +7,7 @@ import type { RepairStatus } from "@/lib/constants";
 import type { Customer, Tool } from "@/lib/types";
 import StatusBadge from "@/components/StatusBadge";
 import EditCustomerForm from "./EditCustomerForm";
+import UnlinkLineButton from "./UnlinkLineButton";
 
 type JobRow = {
   id: string;
@@ -53,6 +54,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         <p className="mt-1 text-xs text-zinc-400">
           ลงทะเบียน {formatDate(c.created_at)} · LINE แจ้งเตือน:{" "}
           {c.line_user_id ? "เชื่อมแล้ว ✅" : "ยังไม่เชื่อม"}
+          {c.line_user_id && profile.role === "admin" && <UnlinkLineButton customerId={c.id} />}
         </p>
         {profile.role === "admin" && (
           <div className="mt-4">

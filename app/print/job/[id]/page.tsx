@@ -7,6 +7,8 @@ import { SHOP, STATUS_LABEL, WARRANTY_LABEL, type RepairStatus } from "@/lib/con
 import { formatDate, formatPhone } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url";
 import PrintButton from "./PrintButton";
+import { adminConfigured } from "@/lib/supabase/admin";
+import { addFriendUrl, getBotInfo, getLineConfig } from "@/lib/line";
 
 type Job = {
   id: string;
@@ -57,6 +59,20 @@ export default async function PrintJobPage({
 
   const trackUrl = `${await siteUrl()}/track?doc=${encodeURIComponent(job.doc_no)}`;
   const qr = await QRCode.toDataURL(trackUrl, { margin: 1, width: 240 });
+
+  // QR แอด LINE OA (ถ้าตั้งค่า LINE แล้ว)
+  let lineQr: string | null = null;
+  let lineId: string | null = null;
+  if (adminConfigured()) {
+    const cfg = await getLineConfig();
+    if (cfg?.access_token) {
+      try {
+        const bot = await getBotInfo(cfg.access_token);
+        lineId = bot.basicId;
+        lineQr = await QRCode.toDataURL(addFriendUrl(bot.basicId), { margin: 1, width: 240 });
+      } catch {}
+    }
+  }
 
   return (
     <div className="min-h-screen bg-zinc-100 py-6 print:bg-white print:py-0">
@@ -116,14 +132,28 @@ export default async function PrintJobPage({
           <Row label="สถานะ" value={STATUS_LABEL[job.status]} />
         </section>
 
-        <section className="mt-3 flex items-center gap-4 rounded-lg border border-zinc-300 p-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={qr} alt="QR ติดตามสถานะ" className="h-24 w-24" />
-          <div className="text-xs">
-            <p className="font-bold">สแกนเพื่อติดตามสถานะการซ่อม</p>
-            <p className="text-zinc-600">หรือเข้าเว็บไซต์แล้วกรอกเลขที่เอกสาร {job.doc_no}</p>
-            <p className="break-all font-mono text-[10px] text-zinc-500">{trackUrl}</p>
+        <section className={`mt-3 grid gap-3 ${lineQr ? "grid-cols-2" : ""}`}>
+          <div className="flex items-center gap-3 rounded-lg border border-zinc-300 p-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qr} alt="QR ติดตามสถานะ" className="h-20 w-20 shrink-0" />
+            <div className="text-[11px]">
+              <p className="font-bold">สแกนเพื่อติดตามสถานะ</p>
+              <p className="text-zinc-600">หรือกรอกเลขที่เอกสาร {job.doc_no} ที่หน้าเว็บ</p>
+              {!lineQr && <p className="break-all font-mono text-[10px] text-zinc-500">{trackUrl}</p>}
+            </div>
           </div>
+          {lineQr && (
+            <div className="flex items-center gap-3 rounded-lg border border-[#06C755] p-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={lineQr} alt="QR แอด LINE" className="h-20 w-20 shrink-0" />
+              <div className="text-[11px]">
+                <p className="font-bold text-[#06A846]">แอด LINE รับแจ้งเตือน</p>
+                <p className="text-zinc-600">
+                  แอดเพื่อน {lineId} แล้วพิมพ์ <span className="font-mono font-bold">{job.doc_no}</span>
+                </p>
+              </div>
+            </div>
+          )}
         </section>
 
         <ul className="mt-3 list-disc pl-5 text-[11px] text-zinc-600">

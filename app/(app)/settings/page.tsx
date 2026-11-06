@@ -17,6 +17,8 @@ import type { BackupInfo } from "@/lib/backup";
 import { formatDateTime } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url";
 import { BackupButton, CopyText, DisconnectButton } from "./SettingsClient";
+import LineSettingsForm from "./LineSettingsForm";
+import { addFriendUrl, DEFAULT_LINE_CONFIG, getBotInfo, getLineConfig, getQuota, lineReady, type BotInfo } from "@/lib/line";
 
 export const dynamic = "force-dynamic";
 
@@ -108,6 +110,25 @@ export default async function SettingsPage({
   const usage = Number(about?.storageQuota?.usage ?? 0);
   const free = limit ? Math.max(limit - usage, 0) : 0;
   const pct = limit ? Math.min(100, (usage / limit) * 100) : 0;
+
+  // ---------- LINE ----------
+  const lineCfg = hasServiceKey && tableReady ? await getLineConfig() : null;
+  const webhookUrl = `${await siteUrl()}/api/line/webhook`;
+  let bot: BotInfo | null = null;
+  let quota: { limit: number | null; used: number } | null = null;
+  let lineError: string | null = null;
+  if (lineCfg?.access_token) {
+    try {
+      [bot, quota] = await Promise.all([getBotInfo(lineCfg.access_token), getQuota(lineCfg.access_token)]);
+    } catch (e) {
+      lineError = e instanceof Error ? e.message : "ติดต่อ LINE ไม่ได้";
+    }
+  }
+  const supabaseLine = await createClient();
+  const [{ count: linkedCount }, { count: sentCount }] = await Promise.all([
+    supabaseLine.from("customers").select("id", { count: "exact", head: true }).not("line_user_id", "is", null),
+    supabaseLine.from("line_messages").select("id", { count: "exact", head: true }),
+  ]);
 
   const errorText = sp.drive_error ? ERRORS[sp.drive_error] ?? decodeURIComponent(sp.drive_error) : null;
 
@@ -285,8 +306,87 @@ export default async function SettingsPage({
         </div>
       </section>
 
-      <section className="rounded-xl border border-dashed border-zinc-300 bg-white p-5 text-sm text-zinc-500">
-        💬 LINE OA (แจ้งเตือนลูกค้า) — จะเพิ่มในหน้านี้ในเฟส 5
+      <section className="rounded-xl border border-zinc-200 bg-white">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#06C755] text-xl text-white">💬</span>
+            <div>
+              <h2 className="font-semibold">LINE OA</h2>
+              <p className="text-xs text-zinc-500">แจ้งเตือนสถานะการซ่อมไปยัง LINE ของลูกค้า</p>
+            </div>
+          </div>
+          {lineReady(lineCfg) && !lineError ? (
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${
+                lineCfg.mode === "live"
+                  ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                  : "bg-amber-50 text-amber-700 ring-amber-200"
+              }`}
+            >
+              ● {lineCfg.mode === "live" ? "ส่งจริง" : "โหมดจำลอง"}
+            </span>
+          ) : (
+            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">○ ยังไม่ตั้งค่า</span>
+          )}
+        </div>
+
+        <div className="space-y-5 p-5">
+          {!(hasServiceKey && tableReady) ? (
+            <p className="text-sm text-zinc-500">ต้องตั้งค่า SUPABASE_SERVICE_ROLE_KEY และรัน SQL 0002 ก่อน (ดูการ์ด Google Drive ด้านบน)</p>
+          ) : (
+            <>
+              {lineError && (
+                <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200">⚠️ {lineError}</p>
+              )}
+              {bot && (
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                  <p>
+                    บัญชี: <span className="font-semibold">{bot.displayName}</span>{" "}
+                    <span className="font-mono text-zinc-500">{bot.basicId}</span>
+                  </p>
+                  <a href={addFriendUrl(bot.basicId)} target="_blank" rel="noreferrer" className="text-brand hover:underline">
+                    ลิงก์เพิ่มเพื่อน ↗
+                  </a>
+                </div>
+              )}
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Stat
+                  label="ข้อความเดือนนี้ (LINE)"
+                  value={quota ? `${quota.used.toLocaleString("th-TH")}${quota.limit !== null ? ` / ${quota.limit.toLocaleString("th-TH")}` : ""}` : "-"}
+                  sub={quota && quota.limit !== null ? `เหลือ ${Math.max(quota.limit - quota.used, 0).toLocaleString("th-TH")} ข้อความ` : quota ? "ไม่จำกัด" : "ยังไม่ได้เชื่อมต่อ"}
+                />
+                <Stat label="ลูกค้าที่เชื่อม LINE แล้ว" value={`${linkedCount ?? 0} คน`} />
+                <Stat label="ข้อความที่บันทึกในระบบ" value={`${sentCount ?? 0}`} sub="รวมโหมดจำลอง" />
+              </div>
+
+              <div>
+                <p className="mb-1 text-sm font-medium">Webhook URL (นำไปใส่ใน LINE Developers → Messaging API)</p>
+                <CopyText text={webhookUrl} />
+              </div>
+
+              <LineSettingsForm
+                initial={{
+                  hasToken: Boolean(lineCfg?.access_token),
+                  hasSecret: Boolean(lineCfg?.channel_secret),
+                  mode: lineCfg?.mode ?? DEFAULT_LINE_CONFIG.mode,
+                  auto_statuses: lineCfg?.auto_statuses ?? DEFAULT_LINE_CONFIG.auto_statuses,
+                  forward_url: lineCfg?.forward_url ?? "",
+                  reply_on_link: lineCfg?.reply_on_link ?? DEFAULT_LINE_CONFIG.reply_on_link,
+                }}
+              />
+
+              <details className="rounded-lg bg-zinc-50 p-4 text-sm">
+                <summary className="cursor-pointer font-medium">วิธีที่ลูกค้าเชื่อม LINE</summary>
+                <ol className="mt-2 list-decimal space-y-1 pl-5 text-zinc-600">
+                  <li>ลูกค้าสแกน QR “แอด LINE” บนใบรับเครื่อง (หรือแอด OA เอง)</li>
+                  <li>พิมพ์ “เลขที่เอกสาร” ในแชท เช่น SV-0001</li>
+                  <li>ระบบจะผูก LINE กับลูกค้าคนนั้นอัตโนมัติ — ครั้งต่อไปแจ้งเตือนได้ทุกงานของลูกค้าคนนี้</li>
+                  <li>ถ้าเลขนั้นผูกกับ LINE อื่นอยู่แล้ว ต้องพิมพ์เลขที่เอกสาร + เบอร์โทร 4 ตัวท้าย เพื่อยืนยัน</li>
+                </ol>
+              </details>
+            </>
+          )}
+        </div>
       </section>
     </div>
   );

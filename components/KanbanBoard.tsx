@@ -42,6 +42,7 @@ export default function KanbanBoard({ jobs, canEdit }: { jobs: BoardJob[]; canEd
   const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<RepairStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   function move(id: string, status: RepairStatus) {
     const job = optimisticJobs.find((j) => j.id === id);
@@ -51,6 +52,7 @@ export default function KanbanBoard({ jobs, canEdit }: { jobs: BoardJob[]; canEd
       moveJob({ id, status });
       const res = await updateStatus(id, status);
       if (res.error) setError(`ย้าย ${job.doc_no} ไม่สำเร็จ: ${res.error}`);
+      else if (res.info) setNotice(`${job.doc_no}: ${res.info}`);
     });
   }
 
@@ -58,6 +60,9 @@ export default function KanbanBoard({ jobs, canEdit }: { jobs: BoardJob[]; canEd
     <div className="space-y-3">
       {error && (
         <p className="rounded-lg bg-rose-50 px-4 py-2 text-sm text-rose-700 ring-1 ring-rose-200">{error}</p>
+      )}
+      {notice && (
+        <p className="rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 ring-1 ring-emerald-200">💬 {notice}</p>
       )}
       {canEdit && (
         <p className="text-xs text-zinc-500">

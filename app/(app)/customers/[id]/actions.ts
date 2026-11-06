@@ -30,3 +30,12 @@ export async function updateCustomer(_prev: SaveState, fd: FormData): Promise<Sa
   revalidatePath(`/customers/${id}`);
   return { ok: true };
 }
+
+export async function unlinkLine(customerId: string): Promise<SaveState> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase.from("customers").update({ line_user_id: null }).eq("id", customerId);
+  if (error) return { error: error.message };
+  revalidatePath(`/customers/${customerId}`);
+  return { ok: true };
+}

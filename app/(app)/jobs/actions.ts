@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { STATUSES, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { autoNotifyStatus, sendJobMessage } from "@/lib/line";
+import { siteUrl } from "@/lib/site-url";
 
-export type ActionResult = { ok?: boolean; error?: string };
+export type ActionResult = { ok?: boolean; error?: string; info?: string };
 
 /** ตรวจสิทธิ์แอดมินแบบคืน error แทนการ throw (ให้ UI แสดงข้อความได้) */
 async function adminClient() {
@@ -35,8 +37,27 @@ export async function updateStatus(jobId: string, status: RepairStatus): Promise
 
   const { error } = await ctx.supabase.from("repair_jobs").update({ status }).eq("id", jobId);
   if (error) return { error: error.message };
+
+  const sent = await autoNotifyStatus(jobId, status, await siteUrl(), ctx.profile.id);
   refresh(jobId);
+  if (sent) {
+    return sent.ok
+      ? { ok: true, info: sent.mode === "live" ? "ส่ง LINE แจ้งลูกค้าแล้ว" : "บันทึกข้อความ LINE (โหมดจำลอง)" }
+      : { ok: true, info: `ส่ง LINE ไม่สำเร็จ: ${sent.error}` };
+  }
   return { ok: true };
+}
+
+// ---------- LINE ----------
+export async function sendLineMessage(jobId: string, text: string): Promise<ActionResult> {
+  const ctx = await adminClient();
+  if ("error" in ctx) return { error: ctx.error };
+  const body = text.trim();
+  if (!body) return { error: "กรุณาพิมพ์ข้อความ" };
+  const res = await sendJobMessage({ jobId, text: body, siteUrl: await siteUrl(), sentBy: ctx.profile.id });
+  refresh(jobId);
+  if (!res.ok) return { error: res.error ?? "ส่งไม่สำเร็จ" };
+  return { ok: true, info: res.mode === "live" ? "ส่งถึงลูกค้าแล้ว ✓" : "บันทึกแล้ว (โหมดจำลอง — ยังไม่ได้ส่งจริง)" };
 }
 
 // ---------- ข้อมูลงาน ----------

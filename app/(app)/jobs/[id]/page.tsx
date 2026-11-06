@@ -7,6 +7,10 @@ import { formatDate, formatDateTime, formatPhone } from "@/lib/format";
 import StatusBadge from "@/components/StatusBadge";
 import FileGallery, { type JobFile } from "@/components/FileGallery";
 import { driveReady } from "@/lib/google-drive";
+import { adminConfigured } from "@/lib/supabase/admin";
+import { buildStatusMessage, getLineConfig, lineReady, loadJobContext } from "@/lib/line";
+import { siteUrl } from "@/lib/site-url";
+import LinePanel, { type LineLog } from "./LinePanel";
 import { CostPanel, JobInfoForm, NoteForm, StatusControl, type Part } from "./JobPanels";
 
 type Job = {
@@ -62,7 +66,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const canEdit = profile.role === "admin";
   const supabase = await createClient();
 
-  const [jobRes, partsRes, historyRes, notesRes, staffRes, filesRes] = await Promise.all([
+  const [jobRes, partsRes, historyRes, notesRes, staffRes, filesRes, lineRes] = await Promise.all([
     supabase
       .from("repair_jobs")
       .select(
@@ -87,6 +91,12 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       .select("id, category, file_name, mime_type, image_url, created_at")
       .eq("repair_job_id", id)
       .order("created_at"),
+    supabase
+      .from("line_messages")
+      .select("id, message, mode, success, error, created_at")
+      .eq("repair_job_id", id)
+      .order("created_at", { ascending: false })
+      .limit(20),
   ]);
 
   if (!jobRes.data) notFound();
@@ -95,6 +105,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const history = (historyRes.data ?? []) as unknown as History[];
   const notes = (notesRes.data ?? []) as unknown as Note[];
   const files = (filesRes.data ?? []) as JobFile[];
+  const lineLogs = (lineRes.data ?? []) as LineLog[];
+  const lineCfg = adminConfigured() ? await getLineConfig() : null;
+  const lineCtx = adminConfigured() ? await loadJobContext(id, await siteUrl()) : null;
+  const lineDefault = lineCtx ? buildStatusMessage(lineCtx.ctx) : "";
   const technicians = (staffRes.data ?? []).map((s) => ({ id: s.id as string, name: s.full_name as string }));
 
   return (
@@ -202,6 +216,18 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               <Info label="แจ้งเตือน LINE">{job.customers?.line_user_id ? "เชื่อมแล้ว ✅" : "ยังไม่เชื่อม"}</Info>
               <Info label="ที่อยู่">{job.customers?.address}</Info>
             </dl>
+          </Card>
+
+          <Card title="💬 แจ้งลูกค้าทาง LINE">
+            <LinePanel
+              jobId={job.id}
+              defaultText={lineDefault}
+              linked={Boolean(job.customers?.line_user_id)}
+              mode={lineCfg?.mode ?? "mock"}
+              configured={lineReady(lineCfg)}
+              canEdit={canEdit}
+              logs={lineLogs}
+            />
           </Card>
 
           <Card title="เครื่องมือ">

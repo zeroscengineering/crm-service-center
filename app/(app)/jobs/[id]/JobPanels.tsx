@@ -35,6 +35,7 @@ function Msg({ state }: { state: ActionResult }) {
 export function StatusControl({ jobId, status }: { jobId: string; status: RepairStatus }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const idx = PIPELINE.indexOf(status);
   const next = idx >= 0 && idx < PIPELINE.length - 1 ? PIPELINE[idx + 1] : null;
 
@@ -42,9 +43,11 @@ export function StatusControl({ jobId, status }: { jobId: string; status: Repair
     if (s === status) return;
     if (s === "cancelled" && !confirm("ยืนยันยกเลิกงานซ่อมนี้?")) return;
     setError(null);
+    setInfo(null);
     start(async () => {
       const res = await updateStatus(jobId, s);
       if (res.error) setError(res.error);
+      if (res.info) setInfo(res.info);
     });
   }
 
@@ -73,6 +76,7 @@ export function StatusControl({ jobId, status }: { jobId: string; status: Repair
         <option value="cancelled">{STATUS_LABEL.cancelled}</option>
       </select>
       {error && <span className="text-sm text-rose-600">{error}</span>}
+      {info && <span className="text-sm text-emerald-700">💬 {info}</span>}
     </div>
   );
 }
