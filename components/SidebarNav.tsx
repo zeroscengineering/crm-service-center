@@ -11,6 +11,7 @@ const ITEMS: Item[] = [
   { href: "/jobs/new", label: "รับแจ้งซ่อมใหม่", adminOnly: true },
   { href: "/chat", label: "💬 แชทลูกค้า" },
   { href: "/customers", label: "ลูกค้า & เครื่องมือ" },
+  { href: "/shipping", label: "🚚 ขนส่ง" },
   { href: "/track", label: "หน้าเช็กสถานะ (ลูกค้า) ↗" },
   { href: "/settings", label: "⚙️ ตั้งค่า", adminOnly: true },
 ];
@@ -23,6 +24,7 @@ export default function SidebarNav({ isAdmin, badges = {} }: { isAdmin: boolean;
         const active =
           pathname === item.href ||
           (item.href === "/customers" && pathname.startsWith("/customers/")) ||
+          (item.href === "/shipping" && pathname.startsWith("/shipping")) ||
           (item.href === "/jobs" && pathname.startsWith("/jobs/") && pathname !== "/jobs/new");
         if (item.soon) {
           return (

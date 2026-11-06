@@ -8,6 +8,8 @@ import type { Customer, Tool } from "@/lib/types";
 import StatusBadge from "@/components/StatusBadge";
 import EditCustomerForm from "./EditCustomerForm";
 import UnlinkLineButton from "./UnlinkLineButton";
+import { CustomerCarrierSelect } from "@/components/ShippingUI";
+import type { Carrier } from "@/lib/shipping";
 
 type JobRow = {
   id: string;
@@ -34,6 +36,8 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   ]);
 
   if (!customer) notFound();
+  const { data: carrierRows, error: carrierErr } = await supabase.from("carriers").select("*").order("sort");
+  const carriers = (carrierRows ?? []) as Carrier[];
   const c = customer as Customer;
   const toolList = (tools ?? []) as Tool[];
   const jobList = (jobs ?? []) as JobRow[];
@@ -56,6 +60,17 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           {c.line_user_id ? "เชื่อมแล้ว ✅" : "ยังไม่เชื่อม"}
           {c.line_user_id && profile.role === "admin" && <UnlinkLineButton customerId={c.id} />}
         </p>
+        {!carrierErr && (
+          <div className="mt-2 flex items-center gap-2 text-sm">
+            <span className="text-zinc-500">🚚 ขนส่งที่ใช้ประจำ:</span>
+            <CustomerCarrierSelect
+              customerId={c.id}
+              value={(customer as { default_carrier_id?: string | null }).default_carrier_id ?? null}
+              carriers={carriers}
+              canEdit={profile.role === "admin"}
+            />
+          </div>
+        )}
         {profile.role === "admin" && (
           <div className="mt-4">
             <EditCustomerForm customer={c} />

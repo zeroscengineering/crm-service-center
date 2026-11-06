@@ -8,6 +8,8 @@ import { formatPhone } from "@/lib/format";
 import { PIPELINE, type RepairStatus } from "@/lib/constants";
 import StatusBadge from "@/components/StatusBadge";
 import { AutoRefresh, Conversation, LinkCustomer, type ChatMsg } from "./ChatClient";
+import TagPicker, { TagChip, type Tag } from "./TagPicker";
+import { StatusControl } from "../jobs/[id]/JobPanels";
 
 export const dynamic = "force-dynamic";
 
@@ -47,9 +49,13 @@ function Avatar({ c, size = 40 }: { c: Contact; size?: number }) {
   );
 }
 
-export default async function ChatPage({ searchParams }: { searchParams: Promise<{ c?: string; q?: string }> }) {
+export default async function ChatPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ c?: string; q?: string; tag?: string }>;
+}) {
   const profile = await requireProfile();
-  const { c: selectedId, q = "" } = await searchParams;
+  const { c: selectedId, q = "", tag: tagFilter = "" } = await searchParams;
   const supabase = await createClient();
 
   const lineCfg = adminConfigured() ? await getLineConfig() : null;
@@ -73,13 +79,41 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
   }
 
   let contacts = (contactRows ?? []) as unknown as Contact[];
+
+  // แท็ก (ถ้ายังไม่รัน SQL 0004 = ไม่มีแท็ก)
+  const [{ data: tagRows, error: tagErr }, { data: ctRows }] = await Promise.all([
+    supabase.from("tags").select("id, name, color").order("name"),
+    supabase.from("contact_tags").select("line_user_id, tag_id"),
+  ]);
+  const tagsReady = !tagErr;
+  const allTags = (tagRows ?? []) as Tag[];
+  const tagById = new Map(allTags.map((t) => [t.id, t]));
+  const tagsOf = new Map<string, string[]>();
+  for (const r of ctRows ?? []) {
+    const k = r.line_user_id as string;
+    tagsOf.set(k, [...(tagsOf.get(k) ?? []), r.tag_id as string]);
+  }
+  const tagCount = new Map<string, number>();
+  for (const ids of tagsOf.values()) for (const id of ids) tagCount.set(id, (tagCount.get(id) ?? 0) + 1);
+  if (tagFilter === "none") contacts = contacts.filter((c) => !(tagsOf.get(c.line_user_id)?.length));
+  else if (tagFilter) contacts = contacts.filter((c) => tagsOf.get(c.line_user_id)?.includes(tagFilter));
+
+  const qs = (over: Record<string, string | undefined>) => {
+    const p = new URLSearchParams();
+    const merged = { c: selectedId, q: q || undefined, tag: tagFilter || undefined, ...over };
+    for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v);
+    const s = p.toString();
+    return s ? `/chat?${s}` : "/chat";
+  };
+
   const term = q.trim().toLowerCase();
   if (term) {
     contacts = contacts.filter((c) =>
       [c.display_name, c.customers?.name, c.customers?.phone].some((v) => v?.toLowerCase().includes(term)),
     );
   }
-  const selected = contacts.find((c) => c.line_user_id === selectedId) ?? null;
+  const selected =
+    ((contactRows ?? []) as unknown as Contact[]).find((c) => c.line_user_id === selectedId) ?? null;
 
   let messages: ChatMsg[] = [];
   let jobs: { id: string; doc_no: string; status: RepairStatus; tools: { brand: string; model: string } | null }[] = [];
@@ -130,6 +164,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
           <h1 className="mb-2 text-lg font-bold">แชทลูกค้า</h1>
           <form>
             {selectedId && <input type="hidden" name="c" value={selectedId} />}
+            {tagFilter && <input type="hidden" name="tag" value={tagFilter} />}
             <input
               name="q"
               defaultValue={q}
@@ -137,6 +172,32 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
               className="w-full rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm"
             />
           </form>
+          {tagsReady && allTags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              <Link
+                href={qs({ tag: undefined })}
+                className={`rounded-full px-2 py-0.5 text-xs ring-1 ${!tagFilter ? "bg-zinc-800 text-white ring-zinc-800" : "ring-zinc-300"}`}
+              >
+                ทั้งหมด
+              </Link>
+              {allTags.map((t) => (
+                <Link
+                  key={t.id}
+                  href={qs({ tag: t.id })}
+                  className={`rounded-full px-2 py-0.5 text-xs ring-1 ${tagFilter === t.id ? "text-white" : "ring-zinc-300"}`}
+                  style={tagFilter === t.id ? { backgroundColor: t.color, borderColor: t.color } : { color: t.color }}
+                >
+                  {t.name} ({tagCount.get(t.id) ?? 0})
+                </Link>
+              ))}
+              <Link
+                href={qs({ tag: "none" })}
+                className={`rounded-full px-2 py-0.5 text-xs ring-1 ${tagFilter === "none" ? "bg-zinc-800 text-white ring-zinc-800" : "ring-zinc-300 text-zinc-500"}`}
+              >
+                ไม่มีแท็ก
+              </Link>
+            </div>
+          )}
           {mode === null && (
             <p className="mt-2 text-xs text-amber-700">
               ยังไม่ได้ตั้งค่า LINE —{" "}
@@ -150,7 +211,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
           {contacts.map((c) => (
             <li key={c.line_user_id}>
               <Link
-                href={`/chat?c=${encodeURIComponent(c.line_user_id)}`}
+                href={qs({ c: c.line_user_id })}
                 className={`flex items-center gap-3 px-3 py-2.5 hover:bg-zinc-50 ${
                   c.line_user_id === selectedId ? "bg-[#06C755]/10" : ""
                 }`}
@@ -171,6 +232,13 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
                       </span>
                     )}
                   </div>
+                  {(tagsOf.get(c.line_user_id)?.length ?? 0) > 0 && (
+                    <div className="mt-0.5 flex flex-wrap gap-0.5">
+                      {tagsOf.get(c.line_user_id)!.map((id) => tagById.get(id)).filter(Boolean).map((t) => (
+                        <TagChip key={t!.id} tag={t!} small />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </Link>
             </li>
@@ -197,6 +265,16 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
                 {selected.display_name && selected.customers ? `LINE: ${selected.display_name} · ` : ""}
                 {selected.customers ? formatPhone(selected.customers.phone) : "ยังไม่ได้ผูกกับลูกค้าในระบบ"}
               </p>
+              {tagsReady && (
+                <div className="mt-1">
+                  <TagPicker
+                    lineUserId={selected.line_user_id}
+                    allTags={allTags}
+                    selected={tagsOf.get(selected.line_user_id) ?? []}
+                    canEdit={profile.role === "admin"}
+                  />
+                </div>
+              )}
             </div>
           </header>
 
@@ -225,21 +303,39 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
                   </div>
                 )}
               </div>
+              {profile.role === "admin" && (
+                <Link
+                  href={`/jobs/new?line=${encodeURIComponent(selected.line_user_id)}${
+                    selected.customers
+                      ? `&customer=${selected.customers.id}`
+                      : `&name=${encodeURIComponent(selected.display_name ?? "")}`
+                  }`}
+                  className="block rounded-lg bg-brand px-3 py-2 text-center text-sm font-semibold text-white hover:bg-brand-dark"
+                >
+                  + สร้างดีล (รับแจ้งซ่อม)
+                </Link>
+              )}
               {selected.customers && (
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase text-zinc-400">งานซ่อม</p>
+                  <p className="mb-2 text-xs font-semibold uppercase text-zinc-400">ดีล / งานซ่อม</p>
                   <ul className="space-y-2">
                     {jobs.map((j) => (
-                      <li key={j.id}>
-                        <Link href={`/jobs/${j.id}`} className="block rounded-lg border border-zinc-200 p-2 text-sm hover:bg-zinc-50">
+                      <li key={j.id} className="rounded-lg border border-zinc-200 p-2 text-sm">
+                        <Link href={`/jobs/${j.id}`} className="block hover:underline">
                           <span className="font-mono font-semibold">{j.doc_no}</span>
                           <span className="block text-xs text-zinc-500">
                             {j.tools?.brand} {j.tools?.model}
                           </span>
-                          <span className="mt-1 block">
-                            <StatusBadge status={j.status} />
-                          </span>
                         </Link>
+                        <div className="mt-1.5">
+                          {profile.role === "admin" ? (
+                            <div className="[&_button]:hidden [&_select]:w-full [&_select]:py-1 [&_select]:text-xs">
+                              <StatusControl jobId={j.id} status={j.status} />
+                            </div>
+                          ) : (
+                            <StatusBadge status={j.status} />
+                          )}
+                        </div>
                       </li>
                     ))}
                     {jobs.length === 0 && <li className="text-xs text-zinc-400">ยังไม่มีงานซ่อม</li>}

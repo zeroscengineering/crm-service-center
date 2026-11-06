@@ -11,6 +11,8 @@ import { adminConfigured } from "@/lib/supabase/admin";
 import { buildStatusMessage, getLineConfig, lineReady, loadJobContext } from "@/lib/line";
 import { siteUrl } from "@/lib/site-url";
 import LinePanel, { type LineLog } from "./LinePanel";
+import { JobShippingPanel } from "@/components/ShippingUI";
+import type { Carrier, Shipment } from "@/lib/shipping";
 import { CostPanel, JobInfoForm, NoteForm, StatusControl, type Part } from "./JobPanels";
 
 type Job = {
@@ -31,7 +33,15 @@ type Job = {
   delivered_at: string | null;
   created_at: string;
   updated_at: string;
-  customers: { id: string; name: string; phone: string; line_id: string | null; line_user_id: string | null; address: string | null } | null;
+  customers: {
+    id: string;
+    name: string;
+    phone: string;
+    line_id: string | null;
+    line_user_id: string | null;
+    address: string | null;
+    default_carrier_id?: string | null;
+  } | null;
   tools: { brand: string; model: string; serial_number: string | null } | null;
   branches: { name: string } | null;
 };
@@ -66,7 +76,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const canEdit = profile.role === "admin";
   const supabase = await createClient();
 
-  const [jobRes, partsRes, historyRes, notesRes, staffRes, filesRes, lineRes] = await Promise.all([
+  const [jobRes, partsRes, historyRes, notesRes, staffRes, filesRes, lineRes, shipRes, carrierRes] = await Promise.all([
     supabase
       .from("repair_jobs")
       .select(
@@ -97,6 +107,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       .eq("repair_job_id", id)
       .order("created_at", { ascending: false })
       .limit(20),
+    supabase.from("shipments").select("*").eq("repair_job_id", id).order("created_at"),
+    supabase.from("carriers").select("*").order("sort").order("name"),
   ]);
 
   if (!jobRes.data) notFound();
@@ -106,6 +118,14 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const notes = (notesRes.data ?? []) as unknown as Note[];
   const files = (filesRes.data ?? []) as JobFile[];
   const lineLogs = (lineRes.data ?? []) as LineLog[];
+  const shippingReady = !carrierRes.error;
+  const shipments = (shipRes.data ?? []) as Shipment[];
+  const carriers = (carrierRes.data ?? []) as Carrier[];
+  let defaultCarrierId: string | null = null;
+  if (shippingReady && job.customers) {
+    const { data: cc } = await supabase.from("customers").select("default_carrier_id").eq("id", job.customers.id).maybeSingle();
+    defaultCarrierId = (cc?.default_carrier_id as string | null) ?? null;
+  }
   const lineCfg = adminConfigured() ? await getLineConfig() : null;
   const lineCtx = adminConfigured() ? await loadJobContext(id, await siteUrl()) : null;
   const lineDefault = lineCtx ? buildStatusMessage(lineCtx.ctx) : "";
@@ -228,6 +248,20 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               canEdit={canEdit}
               logs={lineLogs}
             />
+          </Card>
+
+          <Card title={`🚚 ขนส่ง (${shipments.length})`}>
+            {shippingReady ? (
+              <JobShippingPanel
+                jobId={job.id}
+                shipments={shipments}
+                carriers={carriers}
+                defaultCarrierId={defaultCarrierId}
+                canEdit={canEdit}
+              />
+            ) : (
+              <p className="text-xs text-zinc-500">รัน SQL 0004_tags_shipping.sql ก่อนเพื่อใช้ระบบขนส่ง</p>
+            )}
           </Card>
 
           <Card title="เครื่องมือ">

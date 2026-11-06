@@ -54,10 +54,18 @@ export default function NewJobForm({
   branches,
   technicians,
   today,
+  carriers = [],
+  initialCustomer = null,
+  lineUserId = "",
+  defaultName = "",
 }: {
   branches: Option[];
   technicians: Option[];
   today: string;
+  carriers?: Option[];
+  initialCustomer?: CustomerWithTools | null;
+  lineUserId?: string;
+  defaultName?: string;
 }) {
   const [state, formAction, pending] = useActionState<CreateJobState, FormData>(createJob, {});
   const fe = state.fieldErrors ?? {};
@@ -66,8 +74,8 @@ export default function NewJobForm({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CustomerWithTools[]>([]);
   const [searching, setSearching] = useState(false);
-  const [customer, setCustomer] = useState<CustomerWithTools | null>(null);
-  const [toolId, setToolId] = useState<string>(""); // "" = เครื่องใหม่
+  const [customer, setCustomer] = useState<CustomerWithTools | null>(initialCustomer);
+  const [toolId, setToolId] = useState<string>(initialCustomer?.tools[0]?.id ?? ""); // "" = เครื่องใหม่
 
   useEffect(() => {
     if (customer || query.trim().length < 2) {
@@ -108,6 +116,7 @@ export default function NewJobForm({
     <form onSubmit={onSubmit} className="space-y-5">
       <input type="hidden" name="customer_id" value={customer?.id ?? ""} />
       <input type="hidden" name="tool_id" value={toolId} />
+      <input type="hidden" name="line_user_id" value={lineUserId} />
 
       {/* ---------- เอกสาร ---------- */}
       <Section title="1. ข้อมูลเอกสาร">
@@ -137,6 +146,23 @@ export default function NewJobForm({
               ))}
             </select>
           </Field>
+          {carriers.length > 0 && (
+            <Field label="ขนส่งที่ลูกค้าใช้">
+              <select
+                key={customer?.id ?? "new"}
+                name="carrier_id"
+                className={input}
+                defaultValue={(customer as { default_carrier_id?: string | null } | null)?.default_carrier_id ?? ""}
+              >
+                <option value="">— ไม่ระบุ —</option>
+                {carriers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
         </div>
       </Section>
 
@@ -191,7 +217,7 @@ export default function NewJobForm({
             <p className="text-xs text-zinc-500">ไม่พบ? กรอกข้อมูลลูกค้าใหม่ด้านล่าง</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="ชื่อลูกค้า" required error={fe.customer_name}>
-                <input name="customer_name" className={input} />
+                <input name="customer_name" defaultValue={defaultName} className={input} />
               </Field>
               <Field label="เบอร์โทร" required error={fe.customer_phone}>
                 <input name="customer_phone" inputMode="tel" className={input} placeholder="0812345678" />

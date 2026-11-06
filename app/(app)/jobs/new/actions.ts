@@ -7,6 +7,8 @@ import { requireAdmin } from "@/lib/auth";
 import { BRANDS, type Brand } from "@/lib/constants";
 import { cleanSearch, normalizePhone } from "@/lib/format";
 import type { CustomerWithTools } from "@/lib/types";
+import { adminConfigured } from "@/lib/supabase/admin";
+import { linkContact } from "@/lib/chat";
 
 /** ค้นหาลูกค้าจากชื่อหรือเบอร์โทร (ใช้ในฟอร์มรับแจ้งซ่อม) */
 export async function searchCustomers(query: string): Promise<CustomerWithTools[]> {
@@ -167,6 +169,18 @@ export async function createJob(_prev: CreateJobState, fd: FormData): Promise<Cr
     await cleanup();
     const msg = jobError?.code === "23505" ? "เลขที่เอกสารซ้ำ" : jobError?.message ?? "";
     return { error: `บันทึกงานซ่อมไม่สำเร็จ: ${msg}` };
+  }
+
+  // ขนส่งที่ลูกค้าใช้
+  const carrierId = str(fd, "carrier_id");
+  if (carrierId) {
+    await supabase.from("customers").update({ default_carrier_id: carrierId }).eq("id", finalCustomerId);
+  }
+  // สร้างจากแชท LINE → ผูกแชทกับลูกค้า
+  const lineUserId = str(fd, "line_user_id");
+  if (lineUserId && adminConfigured()) {
+    await linkContact(lineUserId, finalCustomerId).catch((e) => console.error("[link contact]", e));
+    revalidatePath("/chat");
   }
 
   revalidatePath("/dashboard");

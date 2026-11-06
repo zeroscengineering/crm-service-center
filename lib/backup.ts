@@ -15,6 +15,10 @@ const TABLES = [
   "line_messages",
   "line_contacts",
   "chat_messages",
+  "tags",
+  "contact_tags",
+  "carriers",
+  "shipments",
   "profiles",
 ] as const;
 
