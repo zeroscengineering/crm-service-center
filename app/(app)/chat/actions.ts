@@ -68,8 +68,9 @@ export async function createCustomerFromChat(
 
   const { createClient } = await import("@/lib/supabase/server");
   const db = await createClient();
-  const base = { name, phone, line_user_id: lineUserId };
-  let res = await db.from("customers").insert(company ? { ...base, company_name: company } : base).select("id").single();
+  const base: Record<string, string> = { name, phone, line_user_id: lineUserId };
+  const full: Record<string, string> = company ? { ...base, company_name: company } : base;
+  let res = await db.from("customers").insert(full).select("id").single();
   // ยังไม่ได้รัน SQL 0008 (ไม่มีคอลัมน์ company_name) → บันทึกเฉพาะช่องหลัก
   if (res.error && company && /company_name|schema cache/i.test(res.error.message)) {
     res = await db.from("customers").insert(base).select("id").single();
