@@ -13,6 +13,8 @@ const TABLES = [
   "job_status_history",
   "job_notes",
   "line_messages",
+  "line_contacts",
+  "chat_messages",
   "profiles",
 ] as const;
 
@@ -59,7 +61,7 @@ function bangkokStamp(d = new Date()) {
 /** สำรองข้อมูลทั้งหมดลง Google Drive: JSON (ครบทุกตาราง) + CSV สรุปงานซ่อม (เปิดใน Excel/Sheets ได้) */
 export async function runBackup(trigger: BackupInfo["trigger"]): Promise<BackupInfo> {
   const data: Record<string, Row[]> = {};
-  for (const t of TABLES) data[t] = await fetchAll(t);
+  for (const t of TABLES) data[t] = await fetchAll(t).catch(() => []); // ตารางที่ยังไม่ได้สร้าง = ว่าง
 
   const stamp = bangkokStamp();
   const folderId = await backupFolder();

@@ -239,6 +239,11 @@ export async function backupFolder() {
   return ensureFolder(BACKUP_FOLDER_NAME, await rootFolder());
 }
 
+/** CRM-SERVICE CENTER / แชท LINE (รูปจากลูกค้า) */
+export async function chatFolder() {
+  return ensureFolder("แชท LINE (รูปจากลูกค้า)", await rootFolder());
+}
+
 export function folderUrl(id: string) {
   return `https://drive.google.com/drive/folders/${id}`;
 }

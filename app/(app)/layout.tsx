@@ -1,9 +1,15 @@
 import { requireProfile } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import SidebarNav from "@/components/SidebarNav";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireProfile();
   const isAdmin = profile.role === "admin";
+
+  // จำนวนแชทที่ยังไม่อ่าน (ถ้ายังไม่สร้างตาราง = 0)
+  const supabase = await createClient();
+  const { data: unreadRows } = await supabase.from("line_contacts").select("unread_count").gt("unread_count", 0);
+  const unread = (unreadRows ?? []).reduce((s, r) => s + Number(r.unread_count ?? 0), 0);
 
   return (
     <div className="min-h-screen md:flex">
@@ -18,7 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
         <div className="px-2 pb-2 md:flex-1">
-          <SidebarNav isAdmin={isAdmin} />
+          <SidebarNav isAdmin={isAdmin} badges={{ "/chat": unread }} />
         </div>
         <div className="hidden border-t border-zinc-200 p-4 md:block">
           <p className="truncate text-sm font-medium">{profile.full_name}</p>
@@ -32,7 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </form>
         </div>
       </aside>
-      <main className="flex-1 p-4 md:p-8">{children}</main>
+      <main className="min-w-0 flex-1 p-4 md:p-8">{children}</main>
     </div>
   );
 }

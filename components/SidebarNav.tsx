@@ -9,12 +9,13 @@ const ITEMS: Item[] = [
   { href: "/dashboard", label: "แดชบอร์ด" },
   { href: "/jobs", label: "งานซ่อม (Pipeline)" },
   { href: "/jobs/new", label: "รับแจ้งซ่อมใหม่", adminOnly: true },
+  { href: "/chat", label: "💬 แชทลูกค้า" },
   { href: "/customers", label: "ลูกค้า & เครื่องมือ" },
   { href: "/track", label: "หน้าเช็กสถานะ (ลูกค้า) ↗" },
   { href: "/settings", label: "⚙️ ตั้งค่า", adminOnly: true },
 ];
 
-export default function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
+export default function SidebarNav({ isAdmin, badges = {} }: { isAdmin: boolean; badges?: Record<string, number> }) {
   const pathname = usePathname();
   return (
     <nav className="flex gap-1 overflow-x-auto md:flex-col">
@@ -39,11 +40,14 @@ export default function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
             key={item.href}
             href={item.href}
             target={item.href === "/track" ? "_blank" : undefined}
-            className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${
+            className={`flex items-center justify-between gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${
               active ? "bg-brand/10 text-brand" : "text-zinc-700 hover:bg-zinc-100"
             }`}
           >
             {item.label}
+            {(badges[item.href] ?? 0) > 0 && (
+              <span className="rounded-full bg-[#06C755] px-1.5 text-[11px] font-bold text-white">{badges[item.href]}</span>
+            )}
           </Link>
         );
       })}

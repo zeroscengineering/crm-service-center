@@ -3,16 +3,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getLineConfig, lineReady, replyText, verifySignature } from "@/lib/line";
 import { STATUS_LABEL, type RepairStatus } from "@/lib/constants";
 import { siteUrl } from "@/lib/site-url";
+import { ensureContact, linkContact, recordInbound, type InboundEvent } from "@/lib/chat";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-type LineEvent = {
-  type: string;
-  replyToken?: string;
-  source?: { type: string; userId?: string };
-  message?: { type: string; text?: string };
-};
+type LineEvent = InboundEvent & { replyToken?: string };
 
 /** ส่งต่อ webhook ให้ระบบเดิม (คง body + ลายเซ็นเดิม เพื่อให้ระบบเดิมตรวจสอบได้ตามปกติ) */
 async function forward(url: string, raw: string, signature: string | null) {
@@ -72,9 +68,7 @@ async function handleLink(ev: LineEvent, token: string, canReply: boolean, base:
     }
   }
 
-  if (c.line_user_id !== userId) {
-    await db.from("customers").update({ line_user_id: userId }).eq("id", c.id);
-  }
+  if (c.line_user_id !== userId) await linkContact(userId, c.id);
   await say(
     `✅ เชื่อมการแจ้งเตือนเรียบร้อย\nงานซ่อมเลขที่ ${j.doc_no}\nสถานะปัจจุบัน: ${STATUS_LABEL[j.status]}\n\nทางร้านจะแจ้งความคืบหน้าทาง LINE นี้\nติดตามสถานะ: ${base}/track?doc=${encodeURIComponent(j.doc_no)}`,
   );
@@ -102,9 +96,17 @@ export async function POST(req: NextRequest) {
   if (cfg.forward_url) tasks.push(forward(cfg.forward_url, raw, signature));
 
   for (const ev of events) {
-    if (ev.type === "message" && ev.message?.type === "text") {
-      tasks.push(handleLink(ev, cfg.access_token, cfg.reply_on_link, base));
-    } else if (ev.type === "follow" && cfg.reply_on_link && !cfg.forward_url && ev.replyToken) {
+    if (ev.type === "message") {
+      // บันทึกแชทก่อน แล้วค่อยตรวจว่าเป็นเลขที่เอกสารหรือไม่
+      tasks.push(
+        recordInbound(cfg.access_token, ev)
+          .catch((e) => console.error("[chat in]", e))
+          .then(() => (ev.message?.type === "text" ? handleLink(ev, cfg.access_token, cfg.reply_on_link, base) : undefined)),
+      );
+    } else if (ev.type === "follow" && ev.source?.userId) {
+      tasks.push(ensureContact(cfg.access_token, ev.source.userId).catch(() => undefined));
+    }
+    if (ev.type === "follow" && cfg.reply_on_link && !cfg.forward_url && ev.replyToken) {
       tasks.push(
         replyText(
           cfg.access_token,

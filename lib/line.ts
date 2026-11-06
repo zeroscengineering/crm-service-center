@@ -99,6 +99,21 @@ export async function replyText(token: string, replyToken: string, text: string)
   });
 }
 
+export async function getProfile(token: string, userId: string) {
+  const res = await lineFetch(token, `/profile/${encodeURIComponent(userId)}`);
+  return (await res.json()) as { displayName?: string; pictureUrl?: string };
+}
+
+/** ดาวน์โหลดเนื้อไฟล์ที่ลูกค้าส่งมา (รูป ฯลฯ) — LINE เก็บไว้ชั่วคราวเท่านั้น */
+export async function getContent(token: string, messageId: string) {
+  const res = await fetch(`https://api-data.line.me/v2/bot/message/${encodeURIComponent(messageId)}/content`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`LINE content ${res.status}`);
+  return res;
+}
+
 export function verifySignature(secret: string, rawBody: string, signature: string | null) {
   if (!signature) return false;
   const expected = createHmac("sha256", secret).update(rawBody).digest();
@@ -207,6 +222,17 @@ export async function sendJobMessage(opts: {
         error = e instanceof Error ? e.message : "ส่งไม่สำเร็จ";
       }
     }
+  }
+
+  if (mode === "live" && loaded.lineUserId) {
+    const { recordOutbound } = await import("@/lib/chat");
+    await recordOutbound({
+      lineUserId: loaded.lineUserId,
+      text: opts.text,
+      status: ok ? "sent" : "failed",
+      error,
+      sentBy: opts.sentBy ?? null,
+    }).catch((e) => console.error("[chat log]", e));
   }
 
   await createAdminClient()
