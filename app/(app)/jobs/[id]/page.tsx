@@ -5,6 +5,8 @@ import { requireProfile } from "@/lib/auth";
 import { STATUS_LABEL, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
 import { formatDate, formatDateTime, formatPhone } from "@/lib/format";
 import StatusBadge from "@/components/StatusBadge";
+import FileGallery, { type JobFile } from "@/components/FileGallery";
+import { driveConfigured } from "@/lib/google-drive";
 import { CostPanel, JobInfoForm, NoteForm, StatusControl, type Part } from "./JobPanels";
 
 type Job = {
@@ -60,7 +62,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const canEdit = profile.role === "admin";
   const supabase = await createClient();
 
-  const [jobRes, partsRes, historyRes, notesRes, staffRes] = await Promise.all([
+  const [jobRes, partsRes, historyRes, notesRes, staffRes, filesRes] = await Promise.all([
     supabase
       .from("repair_jobs")
       .select(
@@ -80,6 +82,11 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       .eq("repair_job_id", id)
       .order("created_at", { ascending: false }),
     supabase.from("profiles").select("id, full_name").order("full_name"),
+    supabase
+      .from("repair_images")
+      .select("id, category, file_name, mime_type, image_url, created_at")
+      .eq("repair_job_id", id)
+      .order("created_at"),
   ]);
 
   if (!jobRes.data) notFound();
@@ -87,6 +94,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const parts = (partsRes.data ?? []) as Part[];
   const history = (historyRes.data ?? []) as unknown as History[];
   const notes = (notesRes.data ?? []) as unknown as Note[];
+  const files = (filesRes.data ?? []) as JobFile[];
   const technicians = (staffRes.data ?? []).map((s) => ({ id: s.id as string, name: s.full_name as string }));
 
   return (
@@ -165,8 +173,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             </ul>
           </Card>
 
-          <Card title="รูปภาพ & เอกสาร">
-            <p className="text-sm text-zinc-400">อัปโหลดรูปก่อน/หลังซ่อม และไฟล์เอกสาร ลง Google Drive — มาในเฟส 4</p>
+          <Card title={`รูปภาพ & เอกสาร (${files.length})`}>
+            <FileGallery jobId={job.id} files={files} canEdit={canEdit} configured={driveConfigured()} />
           </Card>
         </div>
 

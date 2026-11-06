@@ -282,7 +282,7 @@ export default function NewJobForm({
             options={DOCUMENT_OPTIONS}
           />
           <p className="-mt-2 text-xs text-zinc-500">
-            ไฟล์สแกน/รูปถ่ายเอกสาร จะอัปโหลดได้ในหน้ารายละเอียดงาน (เฟส 4 — Google Drive)
+            อัปโหลดรูปเครื่องและไฟล์เอกสาร ได้ในหน้ารายละเอียดงานหลังบันทึก
           </p>
 
           <Field label="หมายเหตุ / สภาพเครื่องภายนอก">
