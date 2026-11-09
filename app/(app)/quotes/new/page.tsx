@@ -4,7 +4,8 @@ import { ArrowLeft } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { todayBangkok } from "@/lib/format";
-import { DEFAULT_TERMS, type QuoteItem } from "@/lib/quote";
+import { mergeFooter, type QuoteItem } from "@/lib/quote";
+import { getQuoteDefaults } from "@/lib/company";
 import { PageHeader } from "@/components/ui";
 import QuoteEditor from "../QuoteEditor";
 import { nextQuoteNo, type QuoteInput } from "../actions";
@@ -23,7 +24,7 @@ type JobRow = {
 
 export default async function NewQuotePage({ searchParams }: { searchParams: Promise<{ job?: string; customer?: string }> }) {
   const profile = await requireProfile();
-  void profile;
+  const defaults = await getQuoteDefaults();
   const { job: jobId, customer: customerParam } = await searchParams;
   const supabase = await createClient();
 
@@ -77,7 +78,9 @@ export default async function NewQuotePage({ searchParams }: { searchParams: Pro
     discount: 0,
     vat_mode: "exclude",
     notes: job ? `อาการเสีย: ${job.issue_description}` : "",
-    terms: DEFAULT_TERMS,
+    terms: defaults.terms,
+    // ชื่อผู้เสนอราคา: ใช้ค่าในหน้าตั้งค่า ถ้าไม่ได้ตั้งไว้ใช้ชื่อพนักงานที่ล็อกอิน
+    footer: mergeFooter(defaults.footer, defaults.footer.left_name ? null : { left_name: profile.full_name }),
     items,
   };
 

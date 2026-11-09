@@ -20,9 +20,10 @@ import { siteUrl } from "@/lib/site-url";
 import { BackupButton, CopyText, DisconnectButton } from "./SettingsClient";
 import LineSettingsForm from "./LineSettingsForm";
 import CompanyForm from "./CompanyForm";
+import QuoteDefaultsForm from "./QuoteDefaultsForm";
 import UsersManager, { type StaffRow } from "./UsersManager";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCompany } from "@/lib/company";
+import { getCompany, getQuoteDefaults } from "@/lib/company";
 import { addFriendUrl, DEFAULT_LINE_CONFIG, getBotInfo, getLineConfig, getQuota, lineReady, type BotInfo } from "@/lib/line";
 
 export const dynamic = "force-dynamic";
@@ -140,6 +141,7 @@ export default async function SettingsPage({
   ]);
 
   const company = await getCompany();
+  const quoteDefaults = await getQuoteDefaults();
 
   // ---------- ผู้ใช้งาน ----------
   let staff: StaffRow[] = [];
@@ -223,6 +225,22 @@ export default async function SettingsPage({
         <div className="panel-body">
           {hasServiceKey && tableReady ? (
             <CompanyForm company={company} />
+          ) : (
+            <p className="text-sm text-muted">ต้องตั้งค่า SUPABASE_SERVICE_ROLE_KEY และรัน SQL 0002 ก่อน</p>
+          )}
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <h2 className="panel-title">ท้ายเอกสารใบเสนอราคา</h2>
+            <p className="text-xs text-muted">ค่าเริ่มต้นของใบเสนอราคาใหม่: เงื่อนไข ช่องลงนาม และข้อความท้ายเอกสาร</p>
+          </div>
+        </div>
+        <div className="panel-body">
+          {hasServiceKey && tableReady ? (
+            <QuoteDefaultsForm footer={quoteDefaults.footer} terms={quoteDefaults.terms} />
           ) : (
             <p className="text-sm text-muted">ต้องตั้งค่า SUPABASE_SERVICE_ROLE_KEY และรัน SQL 0002 ก่อน</p>
           )}

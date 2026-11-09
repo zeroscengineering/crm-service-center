@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
-import { getCompany } from "@/lib/company";
-import { bahtText, calcQuote, type VatMode } from "@/lib/quote";
+import { getCompany, getQuoteDefaults } from "@/lib/company";
+import { bahtText, calcQuote, mergeFooter, type QuoteFooter, type VatMode } from "@/lib/quote";
 import { formatDate, formatMoney, formatPhone } from "@/lib/format";
 import PrintQuoteButton from "./PrintQuoteButton";
 
@@ -30,10 +30,11 @@ export default async function PrintQuotePage({ params }: { params: Promise<{ id:
   await requireProfile();
   const supabase = await createClient();
 
-  const [{ data: q }, { data: itemRows }, company] = await Promise.all([
+  const [{ data: q }, { data: itemRows }, company, defaults] = await Promise.all([
     supabase.from("quotations").select("*, repair_jobs(doc_no)").eq("id", id).maybeSingle(),
     supabase.from("quotation_items").select("description, qty, unit, unit_price").eq("quotation_id", id).order("sort"),
     getCompany(),
+    getQuoteDefaults(),
   ]);
   if (!q) notFound();
 
@@ -49,6 +50,11 @@ export default async function PrintQuotePage({ params }: { params: Promise<{ id:
   const jobDoc = (q.repair_jobs as { doc_no: string } | null)?.doc_no;
   const terms = ((q.terms as string | null) ?? "").split("\n").map((s) => s.trim()).filter(Boolean);
   const minRows = Math.max(0, 8 - items.length);
+  const footer = mergeFooter(defaults.footer, q.footer as Partial<QuoteFooter> | null);
+  const signers = [
+    { label: footer.left_label, name: footer.left_name, position: footer.left_position },
+    { label: footer.right_label, name: footer.right_name, position: footer.right_position },
+  ].filter((x) => x.label || x.name || x.position);
 
   return (
     <div className="min-h-screen bg-steel py-6 print:bg-white print:py-0">
@@ -217,17 +223,27 @@ export default async function PrintQuotePage({ params }: { params: Promise<{ id:
           </section>
         )}
 
-        {/* ลายเซ็น */}
-        <footer className="mt-14 grid grid-cols-2 gap-12 text-center text-[12px] [break-inside:avoid]">
-          <div>
-            <div className="mx-auto w-56 border-t border-graphite/60 pt-1.5">ผู้เสนอราคา</div>
-            <p className="mt-1 text-muted">วันที่ ......../......../........</p>
-          </div>
-          <div>
-            <div className="mx-auto w-56 border-t border-graphite/60 pt-1.5">ผู้อนุมัติสั่งซ่อม (ลูกค้า)</div>
-            <p className="mt-1 text-muted">วันที่ ......../......../........</p>
-          </div>
-        </footer>
+        {/* ลายเซ็น (แก้ได้ที่ "ส่วนท้ายเอกสาร" ในหน้าแก้ไขใบเสนอราคา) */}
+        {signers.length > 0 && (
+          <footer
+            className={`mt-14 grid gap-12 text-center text-[12px] [break-inside:avoid] ${signers.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
+          >
+            {signers.map((x, i) => (
+              <div key={i}>
+                <div className="mx-auto w-56 border-t border-graphite/60 pt-1.5">{x.label}</div>
+                {x.name && <p className="mt-1">( {x.name} )</p>}
+                {x.position && <p className="text-muted">{x.position}</p>}
+                {footer.show_date && <p className="mt-1 text-muted">วันที่ ......../......../........</p>}
+              </div>
+            ))}
+          </footer>
+        )}
+
+        {footer.footer_text && (
+          <p className="mt-8 whitespace-pre-wrap border-t border-line pt-3 text-center text-[11px] text-muted [break-inside:avoid]">
+            {footer.footer_text}
+          </p>
+        )}
       </article>
     </div>
   );

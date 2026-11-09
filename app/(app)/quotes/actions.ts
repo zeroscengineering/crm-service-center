@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { setSetting } from "@/lib/settings";
-import { calcQuote, type Company, type QuoteItem, type QuoteStatus, type VatMode } from "@/lib/quote";
+import { calcQuote, mergeFooter, type Company, type QuoteFooter, type QuoteItem, type QuoteStatus, type VatMode } from "@/lib/quote";
 
 export type QuoteInput = {
   id?: string;
@@ -24,10 +24,11 @@ export type QuoteInput = {
   vat_mode: VatMode;
   notes: string;
   terms: string;
+  footer: QuoteFooter;
   items: QuoteItem[];
 };
 
-export type QuoteResult = { ok?: boolean; error?: string; id?: string };
+export type QuoteResult = { ok?: boolean; error?: string; id?: string; warn?: string };
 
 async function admin() {
   const p = await requireProfile();
@@ -89,16 +90,27 @@ export async function saveQuote(input: QuoteInput): Promise<QuoteResult> {
     terms: input.terms.trim() || null,
   };
 
-  let id = input.id;
-  if (id) {
-    const { error } = await a.db.from("quotations").update(row).eq("id", id);
-    if (error) return { error: error.code === "23505" ? "เลขที่ใบเสนอราคานี้ถูกใช้แล้ว" : error.message };
-    await a.db.from("quotation_items").delete().eq("quotation_id", id);
-  } else {
-    const { data, error } = await a.db.from("quotations").insert(row).select("id").single();
-    if (error || !data) return { error: error?.code === "23505" ? "เลขที่ใบเสนอราคานี้ถูกใช้แล้ว" : error?.message ?? "บันทึกไม่สำเร็จ" };
-    id = data.id as string;
+  const footer = mergeFooter(input.footer);
+  const write = async (payload: Record<string, unknown>) => {
+    if (input.id) {
+      const { error } = await a.db.from("quotations").update(payload).eq("id", input.id);
+      return { error, id: input.id };
+    }
+    const { data, error } = await a.db.from("quotations").insert(payload).select("id").single();
+    return { error, id: (data?.id as string | undefined) ?? undefined };
+  };
+  let warn: string | undefined;
+  let res = await write({ ...row, footer });
+  // ยังไม่ได้รัน SQL 0009 (ไม่มีคอลัมน์ footer) → บันทึกส่วนอื่นไปก่อน
+  if (res.error && /footer|schema cache/i.test(res.error.message)) {
+    res = await write(row);
+    warn = "บันทึกแล้ว แต่ส่วนท้ายเอกสารยังไม่ถูกเก็บ: รัน SQL 0009_quote_footer.sql ก่อน";
   }
+  if (res.error || !res.id) {
+    return { error: res.error?.code === "23505" ? "เลขที่ใบเสนอราคานี้ถูกใช้แล้ว" : res.error?.message ?? "บันทึกไม่สำเร็จ" };
+  }
+  const id = res.id;
+  if (input.id) await a.db.from("quotation_items").delete().eq("quotation_id", id);
 
   const { error: itemErr } = await a.db.from("quotation_items").insert(
     items.map((i, idx) => ({
@@ -118,7 +130,7 @@ export async function saveQuote(input: QuoteInput): Promise<QuoteResult> {
     revalidatePath(`/jobs/${row.repair_job_id}`);
   }
   revalidatePath("/quotes");
-  return { ok: true, id };
+  return { ok: true, id, warn };
 }
 
 export async function setQuoteStatus(id: string, status: QuoteStatus): Promise<QuoteResult> {
@@ -160,5 +172,20 @@ export async function saveCompany(_p: QuoteResult, fd: FormData): Promise<QuoteR
     return { error: e instanceof Error ? e.message : "บันทึกไม่สำเร็จ" };
   }
   revalidatePath("/settings");
+  return { ok: true };
+}
+
+/** ค่าเริ่มต้นใบเสนอราคาใหม่: ส่วนท้ายเอกสาร + เงื่อนไข (แอดมิน) */
+export async function saveQuoteDefaults(input: { footer: QuoteFooter; terms: string }): Promise<QuoteResult> {
+  const p = await requireProfile();
+  if (p.role !== "admin") return { error: "เฉพาะแอดมินเท่านั้น" };
+  try {
+    await setSetting("quote_defaults", { footer: mergeFooter(input.footer), terms: input.terms.trim() });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "บันทึกไม่สำเร็จ" };
+  }
+  revalidatePath("/settings");
+  revalidatePath("/quotes", "layout");
+  revalidatePath("/print", "layout");
   return { ok: true };
 }

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, Plus, Printer, Save, Trash2, X } from "lucide-react";
 import { deleteQuote, saveQuote, type QuoteInput } from "./actions";
 import TaxLookupButton from "@/components/TaxLookupButton";
+import QuoteFooterFields from "@/components/QuoteFooterFields";
 import {
   bahtText,
   calcQuote,
@@ -70,7 +71,7 @@ export default function QuoteEditor({
       const r = await saveQuote(q);
       if (r.error) return setMsg({ ok: false, text: r.error });
       setDirty(false);
-      setMsg({ ok: true, text: "บันทึกแล้ว" });
+      setMsg(r.warn ? { ok: false, text: r.warn } : { ok: true, text: "บันทึกแล้ว" });
       if (!q.id && r.id) {
         router.replace(`/quotes/${r.id}`);
       } else router.refresh();
@@ -343,6 +344,11 @@ export default function QuoteEditor({
           <L label="เงื่อนไข (หนึ่งบรรทัดต่อหนึ่งข้อ)">
             <textarea disabled={ro} rows={4} value={q.terms} onChange={(e) => set("terms", e.target.value)} className="field" />
           </L>
+          <div className="border-t border-line pt-4">
+            <h3 className="mb-1 text-sm font-semibold">ส่วนท้ายเอกสาร</h3>
+            <p className="mb-3 text-xs text-muted">ช่องลงนามและข้อความท้ายใบเสนอราคาใบนี้ (ค่าเริ่มต้นของใบใหม่ตั้งได้ที่ ตั้งค่า › ข้อมูลบริษัท)</p>
+            <QuoteFooterFields value={q.footer} onChange={(v) => set("footer", v)} disabled={ro} />
+          </div>
         </section>
 
         <section className="panel p-5">

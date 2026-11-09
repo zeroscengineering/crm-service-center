@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { QuoteStatus, VatMode } from "@/lib/quote";
+import { mergeFooter, type QuoteFooter, type QuoteStatus, type VatMode } from "@/lib/quote";
+import { getQuoteDefaults } from "@/lib/company";
 import { PageHeader } from "@/components/ui";
 import QuoteEditor from "../QuoteEditor";
 import type { QuoteInput } from "../actions";
@@ -15,9 +16,10 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
   const profile = await requireProfile();
   const supabase = await createClient();
 
-  const [{ data: q }, { data: items }] = await Promise.all([
+  const [{ data: q }, { data: items }, defaults] = await Promise.all([
     supabase.from("quotations").select("*, repair_jobs(doc_no)").eq("id", id).maybeSingle(),
     supabase.from("quotation_items").select("description, qty, unit, unit_price").eq("quotation_id", id).order("sort"),
+    getQuoteDefaults(),
   ]);
   if (!q) notFound();
 
@@ -39,6 +41,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
     vat_mode: q.vat_mode as VatMode,
     notes: (q.notes as string | null) ?? "",
     terms: (q.terms as string | null) ?? "",
+    footer: mergeFooter(defaults.footer, q.footer as Partial<QuoteFooter> | null),
     items: (items ?? []).map((i) => ({
       description: i.description as string,
       qty: Number(i.qty),

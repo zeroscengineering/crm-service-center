@@ -23,6 +23,43 @@ export const DEFAULT_COMPANY: Company = {
   email: "",
 };
 
+/** ส่วนท้ายใบเสนอราคา (ช่องลงนาม 2 ฝั่ง + ข้อความท้ายเอกสาร) */
+export type QuoteFooter = {
+  left_label: string;
+  left_name: string;
+  left_position: string;
+  right_label: string;
+  right_name: string;
+  right_position: string;
+  show_date: boolean;
+  footer_text: string;
+};
+
+export const DEFAULT_FOOTER: QuoteFooter = {
+  left_label: "ผู้เสนอราคา",
+  left_name: "",
+  left_position: "",
+  right_label: "ผู้อนุมัติสั่งซ่อม (ลูกค้า)",
+  right_name: "",
+  right_position: "",
+  show_date: true,
+  footer_text: "",
+};
+
+/** รวมค่าที่บันทึกไว้ (อาจขาดบางช่อง) เข้ากับค่าเริ่มต้น */
+export function mergeFooter(...parts: (Partial<QuoteFooter> | null | undefined)[]): QuoteFooter {
+  const out: QuoteFooter = { ...DEFAULT_FOOTER };
+  for (const p of parts) {
+    if (!p) continue;
+    for (const k of Object.keys(DEFAULT_FOOTER) as (keyof QuoteFooter)[]) {
+      const v = p[k];
+      if (v === undefined || v === null) continue;
+      (out as Record<string, unknown>)[k] = k === "show_date" ? Boolean(v) : String(v);
+    }
+  }
+  return out;
+}
+
 export const DEFAULT_TERMS = [
   "ราคานี้รวมค่าแรงและค่าอะไหล่ตามรายการข้างต้น",
   "รับประกันงานซ่อมและอะไหล่ที่เปลี่ยน 90 วัน นับจากวันส่งมอบ",
