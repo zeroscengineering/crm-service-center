@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, Plus, Printer, Save, Trash2, X } from "lucide-react";
 import { deleteQuote, saveQuote, type QuoteInput } from "./actions";
 import TaxLookupButton from "@/components/TaxLookupButton";
-import QuoteFooterFields from "@/components/QuoteFooterFields";
 import {
   bahtText,
   calcQuote,
@@ -43,6 +42,7 @@ export default function QuoteEditor({
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [remember, setRemember] = useState(true);
 
   const totals = useMemo(() => calcQuote(q.items, q.discount, q.vat_mode), [q.items, q.discount, q.vat_mode]);
 
@@ -68,7 +68,7 @@ export default function QuoteEditor({
   function save() {
     setMsg(null);
     start(async () => {
-      const r = await saveQuote(q);
+      const r = await saveQuote(q, remember);
       if (r.error) return setMsg({ ok: false, text: r.error });
       setDirty(false);
       setMsg(r.warn ? { ok: false, text: r.warn } : { ok: true, text: "บันทึกแล้ว" });
@@ -344,11 +344,21 @@ export default function QuoteEditor({
           <L label="เงื่อนไข (หนึ่งบรรทัดต่อหนึ่งข้อ)">
             <textarea disabled={ro} rows={4} value={q.terms} onChange={(e) => set("terms", e.target.value)} className="field" />
           </L>
-          <div className="border-t border-line pt-4">
-            <h3 className="mb-1 text-sm font-semibold">ส่วนท้ายเอกสาร</h3>
-            <p className="mb-3 text-xs text-muted">ช่องลงนามและข้อความท้ายใบเสนอราคาใบนี้ (ค่าเริ่มต้นของใบใหม่ตั้งได้ที่ ตั้งค่า › ข้อมูลบริษัท)</p>
-            <QuoteFooterFields value={q.footer} onChange={(v) => set("footer", v)} disabled={ro} />
-          </div>
+          <L label="ข้อความท้ายเอกสาร (เช่น บัญชีธนาคารสำหรับโอนเงิน, ขอบคุณที่ใช้บริการ)">
+            <textarea
+              disabled={ro}
+              rows={3}
+              value={q.footer.footer_text}
+              onChange={(e) => set("footer", { ...q.footer, footer_text: e.target.value })}
+              className="field"
+            />
+          </L>
+          {!ro && (
+            <label className="flex items-center gap-2 text-sm text-muted">
+              <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+              จำเงื่อนไขและข้อความท้ายเอกสารนี้ ไว้ใช้กับใบเสนอราคาใบถัดไป
+            </label>
+          )}
         </section>
 
         <section className="panel p-5">

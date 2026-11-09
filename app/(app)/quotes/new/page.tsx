@@ -23,7 +23,7 @@ type JobRow = {
 };
 
 export default async function NewQuotePage({ searchParams }: { searchParams: Promise<{ job?: string; customer?: string }> }) {
-  const profile = await requireProfile();
+  await requireProfile();
   const defaults = await getQuoteDefaults();
   const { job: jobId, customer: customerParam } = await searchParams;
   const supabase = await createClient();
@@ -79,8 +79,7 @@ export default async function NewQuotePage({ searchParams }: { searchParams: Pro
     vat_mode: "exclude",
     notes: job ? `อาการเสีย: ${job.issue_description}` : "",
     terms: defaults.terms,
-    // ชื่อผู้เสนอราคา: ใช้ค่าในหน้าตั้งค่า ถ้าไม่ได้ตั้งไว้ใช้ชื่อพนักงานที่ล็อกอิน
-    footer: mergeFooter(defaults.footer, defaults.footer.left_name ? null : { left_name: profile.full_name }),
+    footer: mergeFooter(defaults.footer),
     items,
   };
 

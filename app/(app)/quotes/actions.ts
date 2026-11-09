@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
-import { setSetting } from "@/lib/settings";
+import { getSetting, setSetting } from "@/lib/settings";
 import { calcQuote, mergeFooter, type Company, type QuoteFooter, type QuoteItem, type QuoteStatus, type VatMode } from "@/lib/quote";
 
 export type QuoteInput = {
@@ -55,7 +55,7 @@ export async function nextQuoteNo(): Promise<string> {
   return `${prefix}${String(Number.isFinite(n) ? n : 1).padStart(4, "0")}`;
 }
 
-export async function saveQuote(input: QuoteInput): Promise<QuoteResult> {
+export async function saveQuote(input: QuoteInput, remember = false): Promise<QuoteResult> {
   const a = await admin();
   if ("error" in a) return { error: a.error };
 
@@ -128,6 +128,19 @@ export async function saveQuote(input: QuoteInput): Promise<QuoteResult> {
   if (row.repair_job_id && row.status !== "rejected") {
     await a.db.from("repair_jobs").update({ quotation_price: t.grand }).eq("id", row.repair_job_id);
     revalidatePath(`/jobs/${row.repair_job_id}`);
+  }
+  // จำเงื่อนไข + ข้อความท้ายเอกสาร ไว้เป็นค่าเริ่มต้นของใบถัดไป
+  if (remember) {
+    try {
+      const cur = await getSetting<{ footer?: Partial<QuoteFooter>; terms?: string }>("quote_defaults").catch(() => null);
+      await setSetting("quote_defaults", {
+        footer: mergeFooter(cur?.footer, { footer_text: footer.footer_text }),
+        terms: row.terms ?? "",
+      });
+      revalidatePath("/settings");
+    } catch {
+      /* ไม่ทำให้การบันทึกใบเสนอราคาล้ม */
+    }
   }
   revalidatePath("/quotes");
   return { ok: true, id, warn };

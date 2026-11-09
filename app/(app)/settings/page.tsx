@@ -235,7 +235,7 @@ export default async function SettingsPage({
         <div className="panel-head">
           <div>
             <h2 className="panel-title">ท้ายเอกสารใบเสนอราคา</h2>
-            <p className="text-xs text-muted">ค่าเริ่มต้นของใบเสนอราคาใหม่: เงื่อนไข ช่องลงนาม และข้อความท้ายเอกสาร</p>
+            <p className="text-xs text-muted">ค่าเริ่มต้นของใบเสนอราคาใหม่: เงื่อนไข และข้อความท้ายเอกสาร</p>
           </div>
         </div>
         <div className="panel-body">
