@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
-import { STATUSES, STATUS_LABEL, type RepairStatus } from "@/lib/constants";
+import { STATUSES, STATUS_LABEL, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
 import { cleanSearch, formatDate, formatPhone } from "@/lib/format";
 import StatusBadge from "@/components/StatusBadge";
 import KanbanBoard, { type BoardJob } from "@/components/KanbanBoard";
@@ -21,10 +21,10 @@ type Row = {
 export default async function JobsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; view?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; view?: string; warranty?: string; open?: string }>;
 }) {
   const profile = await requireProfile();
-  const { q = "", status = "", view = "board" } = await searchParams;
+  const { q = "", status = "", view = "board", warranty = "", open = "" } = await searchParams;
   const supabase = await createClient();
   const isBoard = view !== "list";
   const canEdit = true; // แอดมินและช่างแก้ไขงานได้
@@ -106,6 +106,8 @@ export default async function JobsPage({
     .limit(100);
 
   if (status && (STATUSES as readonly string[]).includes(status)) query = query.eq("status", status);
+  if (warranty && warranty in WARRANTY_LABEL) query = query.eq("warranty", warranty);
+  if (open === "1") query = query.not("status", "in", "(delivered,cancelled)");
   const term = cleanSearch(q);
   if (term) query = query.ilike("doc_no", `%${term}%`);
 
@@ -132,6 +134,17 @@ export default async function JobsPage({
             </option>
           ))}
         </select>
+        <select name="warranty" defaultValue={warranty} className="rounded-lg border border-line bg-white px-3 py-2 text-sm">
+          <option value="">ทุกประเภทประกัน</option>
+          {(Object.keys(WARRANTY_LABEL) as (keyof typeof WARRANTY_LABEL)[]).map((w) => (
+            <option key={w} value={w}>
+              {WARRANTY_LABEL[w]}
+            </option>
+          ))}
+        </select>
+        <label className="flex items-center gap-1.5 text-sm text-muted">
+          <input type="checkbox" name="open" value="1" defaultChecked={open === "1"} /> เฉพาะงานที่ยังไม่ปิด
+        </label>
         <button className="btn btn-secondary">ค้นหา</button>
       </form>
 

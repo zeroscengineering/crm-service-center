@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { ChevronRight, Clock } from "lucide-react";
+import { ChevronRight, Clock, ShieldCheck, ShieldOff, ShieldQuestion } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
-import { PIPELINE, STATUS_LABEL, type RepairStatus } from "@/lib/constants";
+import { PIPELINE, STATUS_LABEL, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
 import StatusBadge from "@/components/StatusBadge";
 import { DocTag, Empty, PageHeader, Panel } from "@/components/ui";
@@ -33,7 +33,7 @@ export default async function DashboardPage() {
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
 
   const [{ data: statusRows }, recentRes, staleRes] = await Promise.all([
-    supabase.from("repair_jobs").select("status"),
+    supabase.from("repair_jobs").select("status, warranty, received_at"),
     supabase
       .from("repair_jobs")
       .select("id, doc_no, status, received_at, updated_at, customers(name), tools(brand, model)")
@@ -56,6 +56,35 @@ export default async function DashboardPage() {
     if (s in counts) counts[s] += 1;
   }
   const open = PIPELINE.filter((s) => s !== "delivered").reduce((n, s) => n + counts[s], 0);
+
+  // ---------- สรุปงานในประกัน / นอกประกัน ----------
+  type W = keyof typeof WARRANTY_LABEL;
+  const monthStart = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit" }).format(new Date()) + "-01";
+  const monthName = new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", month: "long", year: "numeric" }).format(new Date());
+  const wsum = Object.fromEntries((Object.keys(WARRANTY_LABEL) as W[]).map((w) => [w, { open: 0, month: 0, all: 0 }])) as Record<
+    W,
+    { open: number; month: number; all: number }
+  >;
+  for (const row of statusRows ?? []) {
+    const w = (row.warranty as W) in wsum ? (row.warranty as W) : "unknown";
+    const st = row.status as RepairStatus;
+    if (st === "cancelled") continue; // ไม่นับงานที่ยกเลิก
+    wsum[w].all += 1;
+    if (st !== "delivered") wsum[w].open += 1;
+    if (String(row.received_at ?? "").slice(0, 10) >= monthStart) wsum[w].month += 1;
+  }
+  const wTotal = { open: 0, month: 0, all: 0 };
+  for (const v of Object.values(wsum)) {
+    wTotal.open += v.open;
+    wTotal.month += v.month;
+    wTotal.all += v.all;
+  }
+  const W_STYLE: Record<W, { icon: typeof ShieldCheck; tone: string; bar: string }> = {
+    in_warranty: { icon: ShieldCheck, tone: "text-emerald-700", bar: "bg-emerald-500" },
+    out_of_warranty: { icon: ShieldOff, tone: "text-brand", bar: "bg-brand" },
+    unknown: { icon: ShieldQuestion, tone: "text-muted", bar: "bg-zinc-400" },
+  };
+  const pct = (n: number, d: number) => (d ? Math.round((n / d) * 100) : 0);
 
   return (
     <div className="space-y-6">
@@ -82,6 +111,56 @@ export default async function DashboardPage() {
               )}
             </Link>
           ))}
+        </div>
+      </section>
+
+      {/* สรุปงานในประกัน / นอกประกัน */}
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <h2 className="panel-title">สรุปงานตามประกัน</h2>
+            <p className="text-xs text-muted">ไม่นับงานที่ยกเลิก · กดตัวเลขเพื่อดูรายการงาน</p>
+          </div>
+        </div>
+        <div className="grid divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          {(["in_warranty", "out_of_warranty", "unknown"] as W[]).map((w) => {
+            const v = wsum[w];
+            const st = W_STYLE[w];
+            const Icon = st.icon;
+            return (
+              <div key={w} className="px-5 py-4">
+                <p className={`flex items-center gap-1.5 text-sm font-medium ${st.tone}`}>
+                  <Icon size={16} /> {WARRANTY_LABEL[w]}
+                </p>
+                <Link
+                  href={`/jobs?view=list&warranty=${w}&open=1`}
+                  className="mt-1 inline-flex items-baseline gap-1.5 hover:underline"
+                  title="ดูงานที่ยังไม่ปิด"
+                >
+                  <span className="font-mono text-3xl font-semibold tabular-nums text-ink">{v.open}</span>
+                  <span className="text-xs text-muted">งานที่ยังไม่ปิด</span>
+                </Link>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-steel">
+                  <div className={`h-full ${st.bar}`} style={{ width: `${pct(v.open, wTotal.open)}%` }} />
+                </div>
+                <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <dt className="text-muted">รับเข้า{monthName}</dt>
+                    <dd className="font-mono text-base font-semibold tabular-nums">{v.month}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted">ทั้งหมด</dt>
+                    <dd className="font-mono text-base font-semibold tabular-nums">
+                      <Link href={`/jobs?view=list&warranty=${w}`} className="hover:underline">
+                        {v.all}
+                      </Link>{" "}
+                      <span className="text-[11px] font-normal text-muted">({pct(v.all, wTotal.all)}%)</span>
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            );
+          })}
         </div>
       </section>
 
