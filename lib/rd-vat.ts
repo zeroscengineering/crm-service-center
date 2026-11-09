@@ -125,7 +125,13 @@ export async function lookupVat(tin: string): Promise<{ results: VatInfo[] } | {
   const err = clean(f.vmsgerr?.[0]);
   const nids = f.vnid ?? [];
   if (!nids.length || !clean(nids[0])) {
-    return { error: err || "ไม่พบเลขนี้ในรายชื่อผู้ประกอบการจดทะเบียนภาษีมูลค่าเพิ่ม (อาจไม่ได้จด VAT) กรุณากรอกเอง" };
+    // กรมฯ ส่งข้อความแบบ "ไม่พบข้อมูลที่ต้องการค้นหา <br> Data not found" → แปลงเป็นข้อความที่อ่านง่าย
+    const notFound = !err || /ไม่พบ|not found/i.test(err);
+    return {
+      error: notFound
+        ? "ไม่พบเลขนี้ในรายชื่อผู้จด VAT ที่ยังเปิดกิจการ — บริษัทอาจไม่ได้จด VAT, เลิกกิจการ หรือควบรวมไปแล้ว กรุณากรอกเอง หรือตรวจสอบใน DBD DataWarehouse"
+        : err.replace(/<br\s*\/?>/gi, " · ").replace(/<[^>]+>/g, "").trim(),
+    };
   }
 
   const get = (k: string, i: number) => clean(f[k]?.[i]);

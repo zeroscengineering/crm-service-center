@@ -63,7 +63,19 @@ export default function TaxLookupButton({
           </ul>
         </div>
       )}
-      {msg && <p className={`text-xs ${msg.ok ? "text-emerald-700" : "text-rose-700"}`}>{msg.t}</p>}
+      {msg && (
+        <p className={`text-xs ${msg.ok ? "text-emerald-700" : "text-rose-700"}`}>
+          {msg.t}
+          {!msg.ok && /DBD/.test(msg.t) && (
+            <>
+              {" "}
+              <a href="https://datawarehouse.dbd.go.th/" target="_blank" rel="noreferrer" className="font-medium underline">
+                เปิด DBD DataWarehouse
+              </a>
+            </>
+          )}
+        </p>
+      )}
     </div>
   );
 }
