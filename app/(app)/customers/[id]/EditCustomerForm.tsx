@@ -1,6 +1,7 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
+import TaxLookupButton from "@/components/TaxLookupButton";
 import { Pencil, X } from "lucide-react";
 import { updateCustomer, type SaveState } from "./actions";
 
@@ -35,6 +36,8 @@ export default function EditCustomerForm({
   staff: { id: string; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const field = (n: string) => formRef.current?.elements.namedItem(n) as HTMLInputElement | null;
   const [state, action, pending] = useActionState<SaveState, FormData>(updateCustomer, {});
   useEffect(() => {
     if (state.ok) setOpen(false);
@@ -54,6 +57,7 @@ export default function EditCustomerForm({
 
   return (
     <form
+      ref={formRef}
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
@@ -71,6 +75,21 @@ export default function EditCustomerForm({
         <F name="line_id" label="LINE ID" value={customer.line_id} />
         <F name="tax_id" label="เลขประจำตัวผู้เสียภาษี" value={customer.tax_id} mono />
         <F name="tax_branch" label="สาขา (สำหรับใบกำกับ/ใบเสนอราคา)" value={customer.tax_branch} />
+        <div className="sm:col-span-2">
+          <TaxLookupButton
+            getTin={() => field("tax_id")?.value ?? ""}
+            onPick={(info) => {
+              const put = (n: string, v: string) => {
+                const el = field(n);
+                if (el && v) el.value = v;
+              };
+              put("tax_id", info.tin);
+              put("company_name", info.name);
+              put("tax_branch", info.branch_label);
+              put("address", info.address);
+            }}
+          />
+        </div>
         <F name="address" label="ที่อยู่" value={customer.address} span />
         <label className="sm:col-span-2">
           <span className="field-label">ผู้ดูแลลูกค้า (พนักงาน)</span>

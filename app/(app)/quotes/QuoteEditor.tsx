@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, Plus, Printer, Save, Trash2, X } from "lucide-react";
 import { deleteQuote, saveQuote, type QuoteInput } from "./actions";
+import TaxLookupButton from "@/components/TaxLookupButton";
 import {
   bahtText,
   calcQuote,
@@ -155,6 +156,23 @@ export default function QuoteEditor({
                 className="field"
               />
             </L>
+            {!ro && (
+              <div className="sm:col-span-2">
+                <TaxLookupButton
+                  getTin={() => q.customer_tax_id}
+                  onPick={(info) => {
+                    setDirty(true);
+                    setQ((s) => ({
+                      ...s,
+                      customer_tax_id: info.tin,
+                      customer_name: info.name || s.customer_name,
+                      customer_address: info.address || s.customer_address,
+                      customer_branch: info.branch_label,
+                    }));
+                  }}
+                />
+              </div>
+            )}
             <L label="เรื่อง">
               <input
                 disabled={ro}
