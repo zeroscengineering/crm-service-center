@@ -35,6 +35,9 @@ export default function KanbanBoard({ jobs, canEdit }: { jobs: BoardJob[]; canEd
   const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<RepairStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // แสดงการ์ดต่อคอลัมน์ทีละ 10 ใบ กด "ดูเพิ่มเติม" เพื่อแสดงอีก 10
+  const PAGE = 10;
+  const [shown, setShown] = useState<Record<string, number>>({});
   const [notice, setNotice] = useState<string | null>(null);
 
   function move(id: string, status: RepairStatus) {
@@ -65,6 +68,9 @@ export default function KanbanBoard({ jobs, canEdit }: { jobs: BoardJob[]; canEd
       <div className="flex gap-3 overflow-x-auto pb-4">
         {st.pipeline.map((col) => {
           const items = optimisticJobs.filter((j) => j.status === col);
+          const limit = shown[col] ?? PAGE;
+          const visible = items.slice(0, limit);
+          const remaining = items.length - visible.length;
           return (
             <section
               key={col}
@@ -91,7 +97,7 @@ export default function KanbanBoard({ jobs, canEdit }: { jobs: BoardJob[]; canEd
                 <span className="rounded-full bg-white px-2 font-mono text-xs font-semibold text-ink">{items.length}</span>
               </header>
               <div className="flex min-h-24 flex-1 flex-col gap-2 px-2 pb-2">
-                {items.map((j) => {
+                {visible.map((j) => {
                   const idle = daysSince(j.updated_at);
                   const stale = st.isOpen(col) && idle >= 7;
                   return (
@@ -148,6 +154,32 @@ export default function KanbanBoard({ jobs, canEdit }: { jobs: BoardJob[]; canEd
                 })}
                 {items.length === 0 && (
                   <p className="py-6 text-center text-xs text-zinc-400">{canEdit ? "ลากการ์ดมาวางที่นี่" : "ไม่มีงาน"}</p>
+                )}
+                {remaining > 0 && (
+                  <div className="space-y-1 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShown((m) => ({ ...m, [col]: limit + PAGE }))}
+                      className="w-full rounded-lg border border-dashed border-zinc-400 bg-white/60 py-2 text-xs font-medium text-ink hover:bg-white"
+                    >
+                      ดูเพิ่มเติม ({Math.min(PAGE, remaining)} จาก {remaining} งานที่เหลือ)
+                    </button>
+                    <Link
+                      href={`/jobs?view=list&status=${encodeURIComponent(col)}`}
+                      className="block text-center text-[11px] text-muted hover:text-ink hover:underline"
+                    >
+                      ดูทั้งหมดในมุมมองตาราง
+                    </Link>
+                  </div>
+                )}
+                {remaining <= 0 && items.length > PAGE && (
+                  <button
+                    type="button"
+                    onClick={() => setShown((m) => ({ ...m, [col]: PAGE }))}
+                    className="w-full py-1 text-[11px] text-muted hover:text-ink hover:underline"
+                  >
+                    ย่อเหลือ {PAGE} ใบ
+                  </button>
                 )}
               </div>
             </section>
