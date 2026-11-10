@@ -2,7 +2,8 @@
 
 import { startTransition, useActionState } from "react";
 import { saveLineSettings, type LineSaveState } from "./actions";
-import { STATUSES, STATUS_LABEL, type RepairStatus } from "@/lib/constants";
+import type { RepairStatus } from "@/lib/constants";
+import { useStatuses } from "@/components/StatusProvider";
 
 const input =
   "mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none focus:border-graphite focus:ring-2 focus:ring-graphite/10";
@@ -20,6 +21,7 @@ export default function LineSettingsForm({
   };
 }) {
   const [state, action, pending] = useActionState<LineSaveState, FormData>(saveLineSettings, {});
+  const st = useStatuses();
 
   return (
     <form
@@ -74,13 +76,13 @@ export default function LineSettingsForm({
       <div>
         <p className="text-sm font-medium">ส่งแจ้งเตือนอัตโนมัติเมื่อเปลี่ยนเป็นสถานะ</p>
         <div className="mt-2 flex flex-wrap gap-2">
-          {STATUSES.map((s) => (
+          {st.selectable.map((s) => (
             <label
               key={s}
               className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-sm has-[:checked]:border-graphite has-[:checked]:bg-graphite/5"
             >
               <input type="checkbox" name="auto_statuses" value={s} defaultChecked={initial.auto_statuses.includes(s)} />
-              {STATUS_LABEL[s]}
+              {st.label(s)}
             </label>
           ))}
         </div>

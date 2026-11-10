@@ -21,6 +21,8 @@ import { BackupButton, CopyText, DisconnectButton } from "./SettingsClient";
 import LineSettingsForm from "./LineSettingsForm";
 import CompanyForm from "./CompanyForm";
 import QuoteDefaultsForm from "./QuoteDefaultsForm";
+import StatusManager from "./StatusManager";
+import type { StatusDef } from "@/lib/status-def";
 import UsersManager, { type StaffRow } from "./UsersManager";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCompany, getQuoteDefaults } from "@/lib/company";
@@ -143,6 +145,16 @@ export default async function SettingsPage({
   const company = await getCompany();
   const quoteDefaults = await getQuoteDefaults();
 
+  // ---------- สถานะงานซ่อม ----------
+  const [statusRes, jobStatusRows] = await Promise.all([
+    supabaseLine.from("job_statuses").select("*").order("sort"),
+    supabaseLine.from("repair_jobs").select("status"),
+  ]);
+  const statusReady = !statusRes.error;
+  const statusList = (statusRes.data ?? []) as unknown as StatusDef[];
+  const statusUsage: Record<string, number> = {};
+  for (const r of jobStatusRows.data ?? []) statusUsage[r.status as string] = (statusUsage[r.status as string] ?? 0) + 1;
+
   // ---------- ผู้ใช้งาน ----------
   let staff: StaffRow[] = [];
   let staffError: string | null = null;
@@ -211,6 +223,22 @@ export default async function SettingsPage({
             <p className="text-sm text-rose-700">{staffError}</p>
           ) : (
             <UsersManager users={staff} meId={profile.id} />
+          )}
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <h2 className="panel-title">สถานะงานซ่อม</h2>
+            <p className="text-xs text-muted">เพิ่ม แก้ชื่อ สี ลำดับ ซ่อน และข้อความ LINE ของแต่ละสถานะ</p>
+          </div>
+        </div>
+        <div className="panel-body">
+          {statusReady ? (
+            <StatusManager statuses={statusList} usage={statusUsage} />
+          ) : (
+            <p className="text-sm text-muted">รัน SQL 0010_custom_statuses.sql ใน Supabase ก่อน แล้วรีเฟรชหน้านี้</p>
           )}
         </div>
       </section>

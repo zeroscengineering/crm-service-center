@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
 import { adminConfigured } from "@/lib/supabase/admin";
 import { DEFAULT_LINE_CONFIG, getBotInfo, getLineConfig, saveLineConfig, type LineConfig } from "@/lib/line";
-import { STATUSES, type RepairStatus } from "@/lib/constants";
+import type { RepairStatus } from "@/lib/constants";
+import { getStatuses } from "@/lib/statuses";
 
 export type LineSaveState = { ok?: boolean; error?: string; info?: string };
 
@@ -24,10 +25,11 @@ export async function saveLineSettings(_prev: LineSaveState, fd: FormData): Prom
     return { error: "ห้ามใส่ Webhook ของระบบนี้เอง (จะวนซ้ำไม่จบ)" };
   }
 
+  const st = await getStatuses();
   const auto = fd
     .getAll("auto_statuses")
     .map(String)
-    .filter((s): s is RepairStatus => (STATUSES as readonly string[]).includes(s));
+    .filter((s): s is RepairStatus => st.all.some((x) => x.key === s));
 
   const cfg: LineConfig = {
     access_token: token,

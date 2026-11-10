@@ -1,6 +1,7 @@
 import QRCode from "qrcode";
 import { createClient } from "@/lib/supabase/server";
-import { SHOP, STATUS_LABEL, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { SHOP, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { getStatuses } from "@/lib/statuses";
 import { formatDate, formatPhone } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url";
 import { adminConfigured } from "@/lib/supabase/admin";
@@ -25,7 +26,7 @@ export type ReceiptJob = {
 };
 
 export type ReceiptData = {
-  jobs: (ReceiptJob & { qr: string; trackUrl: string })[];
+  jobs: (ReceiptJob & { qr: string; trackUrl: string; statusLabel: string })[];
   lineQr: string | null;
   lineId: string | null;
   company: Company;
@@ -45,11 +46,12 @@ export async function loadReceipts(ids: string[]): Promise<ReceiptData> {
     getCompany(),
   ]);
   const rows = ((data ?? []) as unknown as ReceiptJob[]).sort((a, b) => a.doc_no.localeCompare(b.doc_no));
+  const st = await getStatuses();
 
   const jobs = await Promise.all(
     rows.map(async (j) => {
       const trackUrl = `${base}/track?doc=${encodeURIComponent(j.doc_no)}`;
-      return { ...j, trackUrl, qr: await QRCode.toDataURL(trackUrl, { margin: 1, width: 240 }) };
+      return { ...j, trackUrl, statusLabel: st.label(j.status), qr: await QRCode.toDataURL(trackUrl, { margin: 1, width: 240 }) };
     }),
   );
 
@@ -137,7 +139,7 @@ export function ReceiptSheet({
         <Row label="เอกสารที่แนบ" value={job.received_documents.join(", ")} />
         <Row label="สภาพ/หมายเหตุ" value={job.repair_notes} />
         <Row label="ช่างผู้รับผิดชอบ" value={job.technician_name} />
-        <Row label="สถานะ" value={STATUS_LABEL[job.status]} />
+        <Row label="สถานะ" value={job.statusLabel} />
       </section>
 
       <section className={`mt-3 grid gap-3 ${lineQr ? "grid-cols-2" : ""}`}>

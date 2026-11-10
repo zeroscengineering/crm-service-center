@@ -6,7 +6,8 @@ import { adminConfigured } from "@/lib/supabase/admin";
 import { getLineConfig, lineReady } from "@/lib/line";
 import { markRead } from "@/lib/chat";
 import { formatPhone } from "@/lib/format";
-import { PIPELINE, type RepairStatus } from "@/lib/constants";
+import type { RepairStatus } from "@/lib/constants";
+import { getStatuses } from "@/lib/statuses";
 import StatusBadge from "@/components/StatusBadge";
 import { AssignExistingJob, AutoRefresh, Conversation, LinkCustomer, NewCustomerFromChat, type ChatMsg } from "./ChatClient";
 import TagPicker, { TagChip, type Tag } from "./TagPicker";
@@ -59,6 +60,7 @@ export default async function ChatPage({
   const profile = await requireProfile();
   const { c: selectedId, q = "", tag: tagFilter = "" } = await searchParams;
   const supabase = await createClient();
+  const st = await getStatuses();
 
   const lineCfg = adminConfigured() ? await getLineConfig() : null;
   const mode = lineReady(lineCfg) ? lineCfg.mode : null;
@@ -349,7 +351,7 @@ export default async function ChatPage({
                   <div className="mt-2">
                     <AssignExistingJob lineUserId={selected.line_user_id} customerId={selected.customers.id} />
                   </div>
-                  {jobs.some((j) => PIPELINE.indexOf(j.status) < PIPELINE.indexOf("delivered")) && (
+                  {jobs.some((j) => st.isOpen(j.status)) && (
                     <p className="mt-2 text-[11px] text-zinc-400">ส่งข้อความแจ้งสถานะสำเร็จรูปได้จากหน้ารายละเอียดงาน</p>
                   )}
                 </div>

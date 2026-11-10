@@ -3,7 +3,8 @@ import { ArrowLeft, FilePlus2, FileText, MessageCircle, Printer, Truck } from "l
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
-import { STATUS_LABEL, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { getStatuses } from "@/lib/statuses";
 import { formatDate, formatDateTime, formatMoney, formatPhone } from "@/lib/format";
 import StatusBadge from "@/components/StatusBadge";
 import FileGallery, { type JobFile } from "@/components/FileGallery";
@@ -139,7 +140,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       ? supabase.from("customers").select("default_carrier_id").eq("id", job.customers.id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
-  const lineDefault = lineCtx ? buildStatusMessage(lineCtx.ctx) : "";
+  const st = await getStatuses();
+  const lineDefault = lineCtx ? buildStatusMessage(lineCtx.ctx, st) : "";
   const defaultCarrierId = ((custCarrier.data as { default_carrier_id?: string | null } | null)?.default_carrier_id ?? null) as
     | string
     | null;
@@ -331,7 +333,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                       i === 0 ? "bg-brand" : "bg-zinc-300"
                     }`}
                   />
-                  <p className={`text-sm ${i === 0 ? "font-semibold" : ""}`}>{STATUS_LABEL[h.to_status]}</p>
+                  <p className={`text-sm ${i === 0 ? "font-semibold" : ""}`}>{st.label(h.to_status)}</p>
                   <p className="text-xs text-zinc-400">
                     {formatDateTime(h.created_at)}
                     {h.profiles?.full_name && ` · ${h.profiles.full_name}`}

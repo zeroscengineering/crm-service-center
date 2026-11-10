@@ -5,7 +5,9 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { adminConfigured, createAdminClient } from "@/lib/supabase/admin";
 import { getSetting, setSetting } from "@/lib/settings";
-import { STATUS_LABEL, type RepairStatus } from "@/lib/constants";
+import { STATUS_LABEL, type BuiltinStatus, type RepairStatus } from "@/lib/constants";
+import type { StatusHelpers } from "@/lib/status-def";
+import { getStatuses } from "@/lib/statuses";
 import { formatMoney } from "@/lib/format";
 
 const API = "https://api.line.me/v2/bot";
@@ -142,12 +144,12 @@ export type JobMessageContext = {
   track_url: string;
 };
 
-export function buildStatusMessage(c: JobMessageContext) {
+export function buildStatusMessage(c: JobMessageContext, st?: StatusHelpers) {
   const head = `เรียนคุณ${c.customer_name}\nงานซ่อมเลขที่ ${c.doc_no} (${c.brand} ${c.model})`;
   const foot = `\n\nติดตามสถานะ: ${c.track_url}`;
   const price = c.quotation_price ?? (c.grand_total > 0 ? c.grand_total : null);
 
-  const body: Record<RepairStatus, string> = {
+  const builtin: Record<BuiltinStatus, string> = {
     received: "ทางร้านได้รับเครื่องของท่านเรียบร้อยแล้ว อยู่ระหว่างตรวจเช็กอาการ",
     quoting: price
       ? `ช่างตรวจเช็กแล้ว ราคาประเมินค่าซ่อม ${formatMoney(price)} บาท\nกรุณาตอบกลับ "ยืนยันซ่อม" หรือโทรแจ้งร้าน เพื่อให้ช่างดำเนินการต่อ`
@@ -160,7 +162,20 @@ export function buildStatusMessage(c: JobMessageContext) {
     delivered: "ส่งมอบเครื่องเรียบร้อยแล้ว ขอบคุณที่ใช้บริการครับ/ค่ะ ",
     cancelled: "งานซ่อมนี้ถูกยกเลิก กรุณาติดต่อร้านเพื่อรับเครื่องคืน",
   };
-  return `${head}\n\n${body[c.status]}${c.status === "delivered" ? "" : foot}`;
+
+  const def = st?.get(c.status);
+  const label = def?.label ?? STATUS_LABEL[c.status as BuiltinStatus] ?? c.status;
+  // ข้อความที่แอดมินตั้งเอง (ตั้งค่า › สถานะงานซ่อม) ใช้ {ราคา} {ยอดชำระ} {สถานะ} แทนค่าได้
+  const tpl = def?.line_message?.trim() ?? "";
+  const custom = tpl
+    ? tpl
+        .split("{ราคา}").join(price ? formatMoney(price) : "-")
+        .split("{ยอดชำระ}").join(c.grand_total > 0 ? formatMoney(c.grand_total) : "-")
+        .split("{สถานะ}").join(label)
+    : null;
+  const body = custom ?? builtin[c.status as BuiltinStatus] ?? `อัปเดตสถานะงานซ่อม: ${label}`;
+  const closed = def ? def.kind === "done" : c.status === "delivered";
+  return `${head}\n\n${body}${closed ? "" : foot}`;
 }
 
 // ---------- ส่งข้อความของงานซ่อม + บันทึก log ----------
@@ -265,11 +280,10 @@ export async function autoNotifyStatus(jobId: string, status: RepairStatus, site
     if (!loaded) return null;
     // โหมดจริง: ข้ามถ้าลูกค้ายังไม่เชื่อม LINE (ไม่ต้องบันทึก error ทุกครั้ง)
     if (cfg.mode === "live" && !loaded.lineUserId) return null;
-    return await sendJobMessage({ jobId, text: buildStatusMessage(loaded.ctx), siteUrl, sentBy });
+    return await sendJobMessage({ jobId, text: buildStatusMessage(loaded.ctx, await getStatuses()), siteUrl, sentBy });
   } catch (e) {
     console.error("[line auto]", e);
     return null;
   }
 }
 
-export { STATUS_LABEL };

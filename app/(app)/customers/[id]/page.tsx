@@ -16,7 +16,8 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { formatDate, formatDateTime, formatMoney, formatPhone } from "@/lib/format";
-import { STATUS_LABEL, type RepairStatus } from "@/lib/constants";
+import type { RepairStatus } from "@/lib/constants";
+import { getStatuses } from "@/lib/statuses";
 import { QUOTE_STATUS_LABEL, type QuoteStatus } from "@/lib/quote";
 import { DIRECTION_LABEL, SHIPMENT_STATUS_LABEL, type Carrier, type ShipmentDirection, type ShipmentStatus } from "@/lib/shipping";
 import type { Tool } from "@/lib/types";
@@ -149,12 +150,13 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const lineName = (lineContact?.display_name as string | null | undefined) ?? null;
   const linePic = (lineContact?.picture_url as string | null | undefined) ?? null;
 
+  const st = await getStatuses();
   const events: TLEvent[] = [];
   for (const h of (histRes.data ?? []) as unknown as { repair_job_id: string; to_status: RepairStatus; created_at: string; profiles: { full_name: string } | null }[]) {
     events.push({
       at: h.created_at,
       kind: "status",
-      title: `${docById.get(h.repair_job_id) ?? ""} ${STATUS_LABEL[h.to_status]}`,
+      title: `${docById.get(h.repair_job_id) ?? ""} ${st.label(h.to_status)}`,
       href: `/jobs/${h.repair_job_id}`,
       by: h.profiles?.full_name,
     });
@@ -190,7 +192,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   events.sort((a, b) => b.at.localeCompare(a.at));
   const timeline = events.slice(0, 60);
 
-  const openJobs = jobList.filter((j) => j.status !== "delivered" && j.status !== "cancelled");
+  const openJobs = jobList.filter((j) => st.isOpen(j.status));
 
   return (
     <div className="space-y-6">

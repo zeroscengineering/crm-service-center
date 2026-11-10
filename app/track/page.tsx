@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { PIPELINE, SHOP, STATUS_LABEL, type RepairStatus } from "@/lib/constants";
+import { SHOP, type RepairStatus } from "@/lib/constants";
+import { getStatuses } from "@/lib/statuses";
 import { formatDate, formatDateTime } from "@/lib/format";
 
 export const metadata: Metadata = { title: "ติดตามสถานะการซ่อม | CRM-SERVICE CENTER" };
@@ -29,7 +30,15 @@ export default async function TrackPage({ searchParams }: { searchParams: Promis
     result = ((data as TrackResult[] | null) ?? [])[0] ?? null;
   }
 
-  const currentIndex = result ? PIPELINE.indexOf(result.status) : -1;
+  const st = await getStatuses();
+  const steps = st.pipeline;
+  // สถานะที่ซ่อนจาก Pipeline: นับว่าถึงขั้นสุดท้ายที่ลำดับไม่เกินสถานะนั้น
+  const currentIndex = result
+    ? steps.includes(result.status)
+      ? steps.indexOf(result.status)
+      : steps.reduce((idx, k, i) => (st.get(k).sort <= st.get(result!.status).sort ? i : idx), -1)
+    : -1;
+  const cancelled = result ? st.isCancelled(result.status) : false;
   const reachedAt = (s: RepairStatus) =>
     result?.history.filter((h) => h.status === s).at(-1)?.at;
 
@@ -75,18 +84,18 @@ export default async function TrackPage({ searchParams }: { searchParams: Promis
               </div>
               <span
                 className={`rounded-full px-3 py-1 text-sm font-semibold ${
-                  result.status === "cancelled" ? "bg-rose-50 text-rose-700" : "bg-brand/10 text-brand"
+                  cancelled ? "bg-rose-50 text-rose-700" : "bg-brand/10 text-brand"
                 }`}
               >
-                {STATUS_LABEL[result.status]}
+                {st.label(result.status)}
               </span>
             </div>
 
-            {result.status === "cancelled" ? (
-              <p className="text-sm text-muted">งานซ่อมนี้ถูกยกเลิก กรุณาติดต่อร้านเพื่อรับเครื่องคืน</p>
+            {cancelled ? (
+              <p className="text-sm text-muted">งานซ่อมนี้ถูก{st.label(result.status)} กรุณาติดต่อร้านเพื่อรับเครื่องคืน</p>
             ) : (
               <ol className="space-y-0">
-                {PIPELINE.map((s, i) => {
+                {steps.map((s, i) => {
                   const done = i <= currentIndex;
                   const current = i === currentIndex;
                   const at = reachedAt(s);
@@ -100,12 +109,12 @@ export default async function TrackPage({ searchParams }: { searchParams: Promis
                         >
                           {done ? <Check size={14} strokeWidth={3} /> : i + 1}
                         </span>
-                        {i < PIPELINE.length - 1 && (
+                        {i < steps.length - 1 && (
                           <span className={`w-0.5 flex-1 ${i < currentIndex ? "bg-brand" : "bg-zinc-200"}`} />
                         )}
                       </div>
                       <div className="pb-5">
-                        <p className={`text-sm ${done ? "font-semibold" : "text-zinc-400"}`}>{STATUS_LABEL[s]}</p>
+                        <p className={`text-sm ${done ? "font-semibold" : "text-zinc-400"}`}>{st.label(s)}</p>
                         {done && at && <p className="text-xs text-muted">{formatDateTime(at)}</p>}
                       </div>
                     </li>

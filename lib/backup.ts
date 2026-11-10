@@ -1,7 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { setSetting } from "@/lib/settings";
 import { backupFolder, uploadFile } from "@/lib/google-drive";
-import { STATUS_LABEL, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { WARRANTY_LABEL } from "@/lib/constants";
+import { getStatuses } from "@/lib/statuses";
 
 const TABLES = [
   "branches",
@@ -22,6 +23,7 @@ const TABLES = [
   "quotations",
   "quotation_items",
   "customer_notes",
+  "job_statuses",
   "customer_tags",
   "profiles",
 ] as const;
@@ -93,6 +95,7 @@ export async function runBackup(trigger: BackupInfo["trigger"]): Promise<BackupI
     "เลขที่เอกสาร", "วันที่รับ", "สถานะ", "ลูกค้า", "เบอร์โทร", "แบรนด์", "รุ่น", "S/N",
     "อาการเสีย", "ประกัน", "ช่าง", "ค่าอะไหล่", "ค่าแรง", "รวม", "ราคาประเมิน", "บันทึกการซ่อม/แชท",
   ];
+  const stLabel = (await getStatuses()).label;
   const lines = [header.join(",")];
   for (const j of data.repair_jobs) {
     const c = customers.get(j.customer_id as string);
@@ -113,7 +116,7 @@ export async function runBackup(trigger: BackupInfo["trigger"]): Promise<BackupI
       [
         j.doc_no,
         j.received_at,
-        STATUS_LABEL[j.status as RepairStatus] ?? j.status,
+        stLabel(j.status as string),
         c?.name,
         c?.phone,
         t?.brand,

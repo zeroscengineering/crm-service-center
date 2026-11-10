@@ -1,8 +1,10 @@
+import type React from "react";
 import Link from "next/link";
 import { ChevronRight, Clock, ShieldCheck, ShieldOff, ShieldQuestion } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
-import { PIPELINE, STATUS_LABEL, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { getStatuses } from "@/lib/statuses";
 import { formatDate } from "@/lib/format";
 import StatusBadge from "@/components/StatusBadge";
 import { DocTag, Empty, PageHeader, Panel } from "@/components/ui";
@@ -17,19 +19,10 @@ type JobRow = {
   tools: { brand: string; model: string } | null;
 };
 
-const SEGMENT_TONE: Record<RepairStatus, string> = {
-  received: "bg-slate-400",
-  quoting: "bg-amber",
-  approved: "bg-sky-500",
-  repairing: "bg-indigo-500",
-  ready: "bg-emerald-500",
-  delivered: "bg-zinc-400",
-  cancelled: "bg-rose-400",
-};
-
 export default async function DashboardPage() {
   const profile = await requireProfile();
   const supabase = await createClient();
+  const st = await getStatuses();
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
 
   const [{ data: statusRows }, recentRes, staleRes] = await Promise.all([
@@ -42,7 +35,7 @@ export default async function DashboardPage() {
     supabase
       .from("repair_jobs")
       .select("id, doc_no, status, received_at, updated_at, customers(name), tools(brand, model)")
-      .not("status", "in", "(delivered,cancelled)")
+      .not("status", "in", st.closedFilter)
       .lt("updated_at", weekAgo)
       .order("updated_at", { ascending: true })
       .limit(8),
@@ -50,12 +43,13 @@ export default async function DashboardPage() {
   const recent = (recentRes.data ?? []) as unknown as JobRow[];
   const stale = (staleRes.data ?? []) as unknown as JobRow[];
 
-  const counts = Object.fromEntries(PIPELINE.map((s) => [s, 0])) as Record<RepairStatus, number>;
+  const counts: Record<RepairStatus, number> = Object.fromEntries(st.pipeline.map((s) => [s, 0]));
+  let open = 0;
   for (const row of statusRows ?? []) {
     const s = row.status as RepairStatus;
     if (s in counts) counts[s] += 1;
+    if (st.isOpen(s)) open += 1;
   }
-  const open = PIPELINE.filter((s) => s !== "delivered").reduce((n, s) => n + counts[s], 0);
 
   // ---------- สรุปงานในประกัน / นอกประกัน ----------
   type W = keyof typeof WARRANTY_LABEL;
@@ -67,10 +61,10 @@ export default async function DashboardPage() {
   >;
   for (const row of statusRows ?? []) {
     const w = (row.warranty as W) in wsum ? (row.warranty as W) : "unknown";
-    const st = row.status as RepairStatus;
-    if (st === "cancelled") continue; // ไม่นับงานที่ยกเลิก
+    const rs = row.status as RepairStatus;
+    if (st.isCancelled(rs)) continue; // ไม่นับงานที่ยกเลิก
     wsum[w].all += 1;
-    if (st !== "delivered") wsum[w].open += 1;
+    if (st.isOpen(rs)) wsum[w].open += 1;
     if (String(row.received_at ?? "").slice(0, 10) >= monthStart) wsum[w].month += 1;
   }
   const wTotal = { open: 0, month: 0, all: 0 };
@@ -92,17 +86,20 @@ export default async function DashboardPage() {
 
       {/* แถบขั้นตอนงานซ่อม: อ่านซ้ายไปขวาตามลำดับจริงของงาน */}
       <section className="panel overflow-hidden">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-          {PIPELINE.map((s, i) => (
+        <div
+          className="grid grid-cols-2 sm:grid-cols-3 lg:[grid-template-columns:repeat(var(--steps),minmax(0,1fr))]"
+          style={{ "--steps": Math.max(1, st.pipeline.length) } as React.CSSProperties}
+        >
+          {st.pipeline.map((s, i) => (
             <Link
               key={s}
               href={`/jobs?view=list&status=${s}`}
               className="group relative border-b border-r border-line px-5 py-4 transition-colors last:border-r-0 hover:bg-steel/50 lg:border-b-0"
             >
-              <span className={`absolute inset-x-0 top-0 h-[3px] ${SEGMENT_TONE[s]}`} />
-              <p className="text-[13px] text-muted">{STATUS_LABEL[s]}</p>
+              <span className="absolute inset-x-0 top-0 h-[3px]" style={{ backgroundColor: st.color(s) }} />
+              <p className="text-[13px] text-muted">{st.label(s)}</p>
               <p className="mt-1 font-mono text-3xl font-semibold tabular-nums text-ink">{counts[s]}</p>
-              {i < PIPELINE.length - 1 && (
+              {i < st.pipeline.length - 1 && (
                 <ChevronRight
                   size={16}
                   className="absolute right-1 top-1/2 hidden -translate-y-1/2 text-line lg:block"
@@ -125,11 +122,11 @@ export default async function DashboardPage() {
         <div className="grid divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           {(["in_warranty", "out_of_warranty", "unknown"] as W[]).map((w) => {
             const v = wsum[w];
-            const st = W_STYLE[w];
-            const Icon = st.icon;
+            const ws = W_STYLE[w];
+            const Icon = ws.icon;
             return (
               <div key={w} className="px-5 py-4">
-                <p className={`flex items-center gap-1.5 text-sm font-medium ${st.tone}`}>
+                <p className={`flex items-center gap-1.5 text-sm font-medium ${ws.tone}`}>
                   <Icon size={16} /> {WARRANTY_LABEL[w]}
                 </p>
                 <Link
@@ -141,7 +138,7 @@ export default async function DashboardPage() {
                   <span className="text-xs text-muted">งานที่ยังไม่ปิด</span>
                 </Link>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-steel">
-                  <div className={`h-full ${st.bar}`} style={{ width: `${pct(v.open, wTotal.open)}%` }} />
+                  <div className={`h-full ${ws.bar}`} style={{ width: `${pct(v.open, wTotal.open)}%` }} />
                 </div>
                 <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
                   <div>
@@ -217,7 +214,7 @@ export default async function DashboardPage() {
                       <div className="min-w-0 flex-1">
                         <p className="font-mono text-[13px] font-semibold">{j.doc_no}</p>
                         <p className="truncate text-xs text-muted">
-                          {STATUS_LABEL[j.status]} · {j.customers?.name}
+                          {st.label(j.status)} · {j.customers?.name}
                         </p>
                       </div>
                       <span className="font-mono text-sm font-semibold text-[#8a6100]">{days} วัน</span>

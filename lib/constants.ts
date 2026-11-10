@@ -10,10 +10,12 @@ export const STATUSES = [
   "delivered",
   "cancelled",
 ] as const;
-export type RepairStatus = (typeof STATUSES)[number];
+/** key ของสถานะ — สถานะตั้งต้น 7 ตัว + สถานะที่แอดมินเพิ่มเอง (ตาราง job_statuses) */
+export type RepairStatus = string;
+export type BuiltinStatus = (typeof STATUSES)[number];
 
 /** ขั้นตอนหลักที่แสดงบน Pipeline (ไม่รวมยกเลิก) */
-export const PIPELINE: RepairStatus[] = [
+export const PIPELINE: BuiltinStatus[] = [
   "received",
   "quoting",
   "approved",
@@ -22,7 +24,7 @@ export const PIPELINE: RepairStatus[] = [
   "delivered",
 ];
 
-export const STATUS_LABEL: Record<RepairStatus, string> = {
+export const STATUS_LABEL: Record<BuiltinStatus, string> = {
   received: "รับเรื่องซ่อม",
   quoting: "กำลังประเมินราคา/อะไหล่",
   approved: "ลูกค้าอนุมัติซ่อม",
@@ -32,7 +34,7 @@ export const STATUS_LABEL: Record<RepairStatus, string> = {
   cancelled: "ยกเลิก",
 };
 
-export const STATUS_COLOR: Record<RepairStatus, string> = {
+export const STATUS_COLOR: Record<BuiltinStatus, string> = {
   received: "bg-slate-100 text-slate-700 ring-slate-300",
   quoting: "bg-amber-50 text-amber-800 ring-amber-300",
   approved: "bg-sky-50 text-sky-800 ring-sky-300",

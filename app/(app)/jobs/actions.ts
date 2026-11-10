@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
-import { STATUSES, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { getStatuses } from "@/lib/statuses";
 import { autoNotifyStatus, sendJobMessage } from "@/lib/line";
 import { siteUrl } from "@/lib/site-url";
 
@@ -31,7 +32,8 @@ function num(v: FormDataEntryValue | null) {
 
 // ---------- สถานะ ----------
 export async function updateStatus(jobId: string, status: RepairStatus): Promise<ActionResult> {
-  if (!STATUSES.includes(status)) return { error: "สถานะไม่ถูกต้อง" };
+  const st = await getStatuses();
+  if (!st.all.some((x) => x.key === status)) return { error: "สถานะไม่ถูกต้อง" };
   const ctx = await adminClient();
   if ("error" in ctx) return { error: ctx.error };
 

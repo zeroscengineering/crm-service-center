@@ -10,7 +10,8 @@ import {
   updateStatus,
   type ActionResult,
 } from "../actions";
-import { PIPELINE, STATUS_LABEL, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { useStatuses } from "@/components/StatusProvider";
 import { ArrowRight, X } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 
@@ -37,12 +38,14 @@ export function StatusControl({ jobId, status }: { jobId: string; status: Repair
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  const idx = PIPELINE.indexOf(status);
-  const next = idx >= 0 && idx < PIPELINE.length - 1 ? PIPELINE[idx + 1] : null;
+  const st = useStatuses();
+  const idx = st.pipeline.indexOf(status);
+  const next = idx >= 0 && idx < st.pipeline.length - 1 ? st.pipeline[idx + 1] : null;
+  const options = st.selectable.includes(status) ? st.selectable : [status, ...st.selectable];
 
   function change(s: RepairStatus) {
     if (s === status) return;
-    if (s === "cancelled" && !confirm("ยืนยันยกเลิกงานซ่อมนี้?")) return;
+    if (st.isCancelled(s) && !confirm(`ยืนยันเปลี่ยนเป็น "${st.label(s)}"?`)) return;
     setError(null);
     setInfo(null);
     start(async () => {
@@ -54,7 +57,7 @@ export function StatusControl({ jobId, status }: { jobId: string; status: Repair
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {next && status !== "cancelled" && (
+      {next && !st.isCancelled(status) && (
         <button
           onClick={() => change(next)}
           disabled={pending}
@@ -62,7 +65,7 @@ export function StatusControl({ jobId, status }: { jobId: string; status: Repair
         >
           {pending ? "กำลังบันทึก..." : (
             <>
-              {STATUS_LABEL[next]} <ArrowRight size={15} />
+              {st.label(next)} <ArrowRight size={15} />
             </>
           )}
         </button>
@@ -73,12 +76,11 @@ export function StatusControl({ jobId, status }: { jobId: string; status: Repair
         onChange={(e) => change(e.target.value as RepairStatus)}
         className="rounded-lg border border-line bg-white px-3 py-2 text-sm"
       >
-        {PIPELINE.map((s) => (
+        {options.map((s) => (
           <option key={s} value={s}>
-            {STATUS_LABEL[s]}
+            {st.label(s)}
           </option>
         ))}
-        <option value="cancelled">{STATUS_LABEL.cancelled}</option>
       </select>
       {error && <span className="text-sm text-rose-600">{error}</span>}
       {info && <span className="text-sm text-emerald-700">{info}</span>}

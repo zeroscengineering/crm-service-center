@@ -1,7 +1,8 @@
 import { NextResponse, after, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLineConfig, lineReady, replyText, verifySignature } from "@/lib/line";
-import { STATUS_LABEL, type RepairStatus } from "@/lib/constants";
+import type { RepairStatus } from "@/lib/constants";
+import { getStatuses } from "@/lib/statuses";
 import { siteUrl } from "@/lib/site-url";
 import { ensureContact, linkContact, recordInbound, type InboundEvent } from "@/lib/chat";
 
@@ -70,7 +71,7 @@ async function handleLink(ev: LineEvent, token: string, canReply: boolean, base:
 
   if (c.line_user_id !== userId) await linkContact(userId, c.id);
   await say(
-    `เชื่อมการแจ้งเตือนเรียบร้อย\nงานซ่อมเลขที่ ${j.doc_no}\nสถานะปัจจุบัน: ${STATUS_LABEL[j.status]}\n\nทางร้านจะแจ้งความคืบหน้าทาง LINE นี้\nติดตามสถานะ: ${base}/track?doc=${encodeURIComponent(j.doc_no)}`,
+    `เชื่อมการแจ้งเตือนเรียบร้อย\nงานซ่อมเลขที่ ${j.doc_no}\nสถานะปัจจุบัน: ${(await getStatuses()).label(j.status)}\n\nทางร้านจะแจ้งความคืบหน้าทาง LINE นี้\nติดตามสถานะ: ${base}/track?doc=${encodeURIComponent(j.doc_no)}`,
   );
 }
 

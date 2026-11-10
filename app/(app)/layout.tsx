@@ -2,6 +2,8 @@ import { LogOut } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import SidebarNav from "@/components/SidebarNav";
+import { StatusProvider } from "@/components/StatusProvider";
+import { getStatusList } from "@/lib/statuses";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireProfile();
@@ -11,6 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const supabase = await createClient();
   const { data: unreadRows } = await supabase.from("line_contacts").select("unread_count").gt("unread_count", 0);
   const unread = (unreadRows ?? []).reduce((s, r) => s + Number(r.unread_count ?? 0), 0);
+  const statuses = await getStatusList();
 
   return (
     <div className="min-h-screen md:flex">
@@ -42,7 +45,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </form>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 px-4 py-6 md:px-10 md:py-8">{children}</main>
+      <main className="min-w-0 flex-1 px-4 py-6 md:px-10 md:py-8">
+        <StatusProvider statuses={statuses}>{children}</StatusProvider>
+      </main>
     </div>
   );
 }

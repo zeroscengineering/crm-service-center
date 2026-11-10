@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
-import { STATUSES, STATUS_LABEL, WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { WARRANTY_LABEL, type RepairStatus } from "@/lib/constants";
+import { getStatuses } from "@/lib/statuses";
 import { cleanSearch, formatDate, formatPhone } from "@/lib/format";
 import StatusBadge from "@/components/StatusBadge";
 import KanbanBoard, { type BoardJob } from "@/components/KanbanBoard";
@@ -26,6 +27,10 @@ export default async function JobsPage({
   const profile = await requireProfile();
   const { q = "", status = "", view = "board", warranty = "", open = "" } = await searchParams;
   const supabase = await createClient();
+  const st = await getStatuses();
+  const inList = (keys: string[]) => `(${(keys.length ? keys : ["__none__"]).map((k) => `"${k}"`).join(",")})`;
+  const cancelledKeys = st.all.filter((x) => x.kind === "cancelled").map((x) => x.key);
+  const doneKeys = st.all.filter((x) => x.kind === "done").map((x) => x.key);
   const isBoard = view !== "list";
   const canEdit = true; // แอดมินและช่างแก้ไขงานได้
   void profile;
@@ -58,8 +63,8 @@ export default async function JobsPage({
     const { data } = await supabase
       .from("repair_jobs")
       .select("id, doc_no, status, received_at, updated_at, technician_name, quotation_price, customers(name), tools(brand, model)")
-      .neq("status", "cancelled")
-      .or(`status.neq.delivered,updated_at.gte."${since}"`)
+      .not("status", "in", inList(cancelledKeys))
+      .or(`status.not.in.${inList(doneKeys)},updated_at.gte."${since}"`)
       .order("received_at", { ascending: true })
       .limit(500);
 
@@ -90,7 +95,7 @@ export default async function JobsPage({
       <div className="space-y-6">
         {header}
         <p className="text-xs text-muted">
-          คอลัมน์ “ส่งมอบเรียบร้อย” แสดงเฉพาะ 30 วันล่าสุด · งานที่ยกเลิกดูได้ในมุมมองตาราง
+          คอลัมน์ที่ปิดงานแล้ว (เช่น ส่งมอบเรียบร้อย) แสดงเฉพาะ 30 วันล่าสุด · งานที่ยกเลิกดูได้ในมุมมองตาราง · เพิ่ม/แก้สถานะได้ที่ ตั้งค่า › สถานะงานซ่อม
         </p>
         <KanbanBoard jobs={jobs} canEdit={canEdit} />
       </div>
@@ -105,9 +110,9 @@ export default async function JobsPage({
     .order("created_at", { ascending: false })
     .limit(100);
 
-  if (status && (STATUSES as readonly string[]).includes(status)) query = query.eq("status", status);
+  if (status && st.all.some((x) => x.key === status)) query = query.eq("status", status);
   if (warranty && warranty in WARRANTY_LABEL) query = query.eq("warranty", warranty);
-  if (open === "1") query = query.not("status", "in", "(delivered,cancelled)");
+  if (open === "1") query = query.not("status", "in", st.closedFilter);
   const term = cleanSearch(q);
   if (term) query = query.ilike("doc_no", `%${term}%`);
 
@@ -128,9 +133,10 @@ export default async function JobsPage({
         />
         <select name="status" defaultValue={status} className="rounded-lg border border-line bg-white px-3 py-2 text-sm">
           <option value="">ทุกสถานะ</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABEL[s]}
+          {st.all.map((s) => (
+            <option key={s.key} value={s.key}>
+              {s.label}
+              {s.hidden ? " (ซ่อน)" : ""}
             </option>
           ))}
         </select>
