@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { mergeFooter, type QuoteFooter, type QuoteStatus, type VatMode } from "@/lib/quote";
+import { mergeFooter, type DiscountType, type QuoteFooter, type QuoteStatus, type VatMode } from "@/lib/quote";
 import { getQuoteDefaults } from "@/lib/company";
 import { PageHeader } from "@/components/ui";
 import QuoteEditor from "../QuoteEditor";
@@ -18,7 +18,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
 
   const [{ data: q }, { data: items }, defaults] = await Promise.all([
     supabase.from("quotations").select("*, repair_jobs(doc_no)").eq("id", id).maybeSingle(),
-    supabase.from("quotation_items").select("description, qty, unit, unit_price").eq("quotation_id", id).order("sort"),
+    supabase.from("quotation_items").select("*").eq("quotation_id", id).order("sort"),
     getQuoteDefaults(),
   ]);
   if (!q) notFound();
@@ -47,6 +47,8 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
       qty: Number(i.qty),
       unit: (i.unit as string | null) ?? "",
       unit_price: Number(i.unit_price),
+      discount: Number(i.discount ?? 0),
+      discount_type: (i.discount_type === "percent" ? "percent" : "amount") as DiscountType,
     })),
   };
   const jobDocNo = (q.repair_jobs as { doc_no: string } | null)?.doc_no ?? null;

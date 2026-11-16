@@ -112,16 +112,29 @@ export async function saveQuote(input: QuoteInput, remember = false): Promise<Qu
   const id = res.id;
   if (input.id) await a.db.from("quotation_items").delete().eq("quotation_id", id);
 
-  const { error: itemErr } = await a.db.from("quotation_items").insert(
-    items.map((i, idx) => ({
-      quotation_id: id,
-      sort: idx,
-      description: i.description,
-      qty: i.qty,
-      unit: i.unit?.trim() || null,
-      unit_price: i.unit_price,
-    })),
-  );
+  const baseItems = items.map((i, idx) => ({
+    quotation_id: id,
+    sort: idx,
+    description: i.description,
+    qty: i.qty,
+    unit: i.unit?.trim() || null,
+    unit_price: i.unit_price,
+  }));
+  const withDiscount = baseItems.map((b, idx) => ({
+    ...b,
+    discount: Math.max(Number(items[idx].discount) || 0, 0),
+    discount_type: items[idx].discount_type === "percent" ? "percent" : "amount",
+  }));
+  let { error: itemErr } = await a.db.from("quotation_items").insert(withDiscount);
+  // ยังไม่ได้รัน SQL 0011 (ไม่มีคอลัมน์ส่วนลดรายการ)
+  if (itemErr && /discount|schema cache/i.test(itemErr.message)) {
+    if (withDiscount.some((x) => x.discount > 0)) {
+      ({ error: itemErr } = await a.db.from("quotation_items").insert(baseItems));
+      warn = "บันทึกแล้ว แต่ส่วนลดแยกรายการยังไม่ถูกเก็บ: รัน SQL 0011_quote_item_discount.sql ก่อน แล้วบันทึกใหม่";
+    } else {
+      ({ error: itemErr } = await a.db.from("quotation_items").insert(baseItems));
+    }
+  }
   if (itemErr) return { error: itemErr.message };
 
   // ราคาประเมินของงานซ่อม = ยอดใบเสนอราคาล่าสุด (ใช้ในข้อความ LINE / Pipeline)

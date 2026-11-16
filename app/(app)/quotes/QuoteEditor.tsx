@@ -9,6 +9,9 @@ import TaxLookupButton from "@/components/TaxLookupButton";
 import {
   bahtText,
   calcQuote,
+  lineDiscount,
+  lineGross,
+  lineTotal,
   QUOTE_STATUS_LABEL,
   VAT_LABEL,
   type QuoteItem,
@@ -17,7 +20,7 @@ import {
 } from "@/lib/quote";
 import { formatMoney } from "@/lib/format";
 
-const blankItem = (): QuoteItem => ({ description: "", qty: 1, unit: "ชิ้น", unit_price: 0 });
+const blankItem = (): QuoteItem => ({ description: "", qty: 1, unit: "ชิ้น", unit_price: 0, discount: 0, discount_type: "amount" });
 
 function L({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
   return (
@@ -240,15 +243,16 @@ export default function QuoteEditor({
           <h2 className="panel-title">รายการ</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="data-table min-w-[720px]">
+          <table className="data-table min-w-[860px]">
             <thead>
               <tr>
                 <th className="w-10 text-center">#</th>
                 <th>รายละเอียด</th>
                 <th className="w-24 text-right">จำนวน</th>
                 <th className="w-24">หน่วย</th>
-                <th className="w-36 text-right">ราคา/หน่วย</th>
-                <th className="w-36 text-right">จำนวนเงิน</th>
+                <th className="w-32 text-right">ราคา/หน่วย</th>
+                <th className="w-44 text-right">ส่วนลด</th>
+                <th className="w-32 text-right">จำนวนเงิน</th>
                 {canEdit && <th className="w-24" />}
               </tr>
             </thead>
@@ -291,8 +295,39 @@ export default function QuoteEditor({
                       className="field text-right"
                     />
                   </td>
+                  <td>
+                    <div className="flex">
+                      <input
+                        disabled={ro}
+                        type="number"
+                        step="any"
+                        min={0}
+                        max={it.discount_type === "percent" ? 100 : undefined}
+                        value={it.discount ?? 0}
+                        onChange={(e) => setItem(i, { discount: Number(e.target.value) })}
+                        className="field rounded-r-none text-right"
+                        aria-label="ส่วนลด"
+                      />
+                      <select
+                        disabled={ro}
+                        value={it.discount_type ?? "amount"}
+                        onChange={(e) => setItem(i, { discount_type: e.target.value as "amount" | "percent" })}
+                        className="field w-16 shrink-0 rounded-l-none border-l-0 px-2"
+                        aria-label="ประเภทส่วนลด"
+                      >
+                        <option value="amount">บาท</option>
+                        <option value="percent">%</option>
+                      </select>
+                    </div>
+                    {lineDiscount(it) > 0 && it.discount_type === "percent" && (
+                      <p className="mt-1 text-right text-[11px] text-muted">ลด {formatMoney(lineDiscount(it))} บาท</p>
+                    )}
+                  </td>
                   <td className="pt-5 text-right font-mono tabular-nums">
-                    {formatMoney((Number(it.qty) || 0) * (Number(it.unit_price) || 0))}
+                    {lineDiscount(it) > 0 && (
+                      <span className="block text-[11px] text-zinc-400 line-through">{formatMoney(lineGross(it))}</span>
+                    )}
+                    {formatMoney(lineTotal(it))}
                   </td>
                   {canEdit && (
                     <td className="pt-4">

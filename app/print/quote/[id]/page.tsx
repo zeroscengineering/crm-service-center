@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { getCompany, getQuoteDefaults } from "@/lib/company";
-import { bahtText, calcQuote, mergeFooter, type QuoteFooter, type VatMode } from "@/lib/quote";
+import { bahtText, calcQuote, lineDiscount, lineTotal, mergeFooter, type DiscountType, type QuoteFooter, type VatMode } from "@/lib/quote";
 import { formatDate, formatMoney, formatPhone } from "@/lib/format";
 import PrintQuoteButton from "./PrintQuoteButton";
 
@@ -32,7 +32,7 @@ export default async function PrintQuotePage({ params }: { params: Promise<{ id:
 
   const [{ data: q }, { data: itemRows }, company, defaults] = await Promise.all([
     supabase.from("quotations").select("*, repair_jobs(doc_no)").eq("id", id).maybeSingle(),
-    supabase.from("quotation_items").select("description, qty, unit, unit_price").eq("quotation_id", id).order("sort"),
+    supabase.from("quotation_items").select("*").eq("quotation_id", id).order("sort"),
     getCompany(),
     getQuoteDefaults(),
   ]);
@@ -43,6 +43,8 @@ export default async function PrintQuotePage({ params }: { params: Promise<{ id:
     qty: Number(i.qty),
     unit: (i.unit as string | null) ?? "",
     unit_price: Number(i.unit_price),
+    discount: Number(i.discount ?? 0),
+    discount_type: (i.discount_type === "percent" ? "percent" : "amount") as DiscountType,
   }));
   const vatMode = q.vat_mode as VatMode;
   const discount = Number(q.discount);
@@ -50,6 +52,7 @@ export default async function PrintQuotePage({ params }: { params: Promise<{ id:
   const jobDoc = (q.repair_jobs as { doc_no: string } | null)?.doc_no;
   const terms = ((q.terms as string | null) ?? "").split("\n").map((s) => s.trim()).filter(Boolean);
   const minRows = Math.max(0, 8 - items.length);
+  const hasLineDiscount = items.some((it) => lineDiscount(it) > 0);
   const footer = mergeFooter(defaults.footer, q.footer as Partial<QuoteFooter> | null);
   const signers = [
     { label: footer.left_label, name: footer.left_name, position: footer.left_position },
@@ -142,6 +145,7 @@ export default async function PrintQuotePage({ params }: { params: Promise<{ id:
               <th className="w-16 px-2 py-1.5 text-right font-medium">จำนวน</th>
               <th className="w-14 px-2 py-1.5 text-left font-medium">หน่วย</th>
               <th className="w-24 px-2 py-1.5 text-right font-medium">ราคา/หน่วย</th>
+              {hasLineDiscount && <th className="w-20 px-2 py-1.5 text-right font-medium">ส่วนลด</th>}
               <th className="w-28 px-2 py-1.5 text-right font-medium">จำนวนเงิน</th>
             </tr>
           </thead>
@@ -153,13 +157,22 @@ export default async function PrintQuotePage({ params }: { params: Promise<{ id:
                 <td className="px-2 py-1.5 text-right tabular-nums">{it.qty.toLocaleString("th-TH")}</td>
                 <td className="px-2 py-1.5">{it.unit}</td>
                 <td className="px-2 py-1.5 text-right tabular-nums">{formatMoney(it.unit_price)}</td>
-                <td className="px-2 py-1.5 text-right tabular-nums">{formatMoney(it.qty * it.unit_price)}</td>
+                {hasLineDiscount && (
+                  <td className="px-2 py-1.5 text-right tabular-nums">
+                    {lineDiscount(it) > 0
+                      ? it.discount_type === "percent"
+                        ? `${Number(it.discount).toLocaleString("th-TH")}%`
+                        : formatMoney(lineDiscount(it))
+                      : "-"}
+                  </td>
+                )}
+                <td className="px-2 py-1.5 text-right tabular-nums">{formatMoney(lineTotal(it))}</td>
               </tr>
             ))}
             {Array.from({ length: minRows }).map((_, i) => (
               <tr key={`e${i}`} className="border-b border-line">
                 <td className="px-2 py-1.5">&nbsp;</td>
-                <td colSpan={5} />
+                <td colSpan={hasLineDiscount ? 6 : 5} />
               </tr>
             ))}
           </tbody>

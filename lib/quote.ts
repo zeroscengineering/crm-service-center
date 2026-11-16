@@ -3,7 +3,34 @@
 export type VatMode = "exclude" | "include" | "none";
 export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected";
 
-export type QuoteItem = { description: string; qty: number; unit: string; unit_price: number };
+export type DiscountType = "amount" | "percent";
+export type QuoteItem = {
+  description: string;
+  qty: number;
+  unit: string;
+  unit_price: number;
+  /** ส่วนลดของรายการนี้ — บาท (amount) หรือ % (percent) */
+  discount?: number;
+  discount_type?: DiscountType;
+};
+
+const r2i = (n: number) => Math.round(n * 100) / 100;
+/** ยอดก่อนลด = จำนวน x ราคา/หน่วย */
+export function lineGross(i: QuoteItem) {
+  return r2i((Number(i.qty) || 0) * (Number(i.unit_price) || 0));
+}
+/** ส่วนลดเป็นบาทของรายการ (ไม่เกินยอดของรายการ) */
+export function lineDiscount(i: QuoteItem) {
+  const gross = lineGross(i);
+  const d = Math.max(Number(i.discount) || 0, 0);
+  if (!d || gross <= 0) return 0;
+  const amt = i.discount_type === "percent" ? (gross * Math.min(d, 100)) / 100 : d;
+  return r2i(Math.min(amt, gross));
+}
+/** จำนวนเงินสุทธิของรายการ */
+export function lineTotal(i: QuoteItem) {
+  return r2i(lineGross(i) - lineDiscount(i));
+}
 
 export type Company = {
   name: string;
@@ -89,7 +116,7 @@ export const VAT_LABEL: Record<VatMode, string> = {
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 export function calcQuote(items: QuoteItem[], discount: number, vatMode: VatMode, vatRate = 7) {
-  const itemsTotal = r2(items.reduce((s, i) => s + (Number(i.qty) || 0) * (Number(i.unit_price) || 0), 0));
+  const itemsTotal = r2(items.reduce((s, i) => s + lineTotal(i), 0));
   const afterDiscount = r2(Math.max(itemsTotal - (Number(discount) || 0), 0));
   let subtotal = afterDiscount;
   let vat = 0;
