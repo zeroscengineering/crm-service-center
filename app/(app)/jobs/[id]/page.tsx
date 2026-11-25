@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, FilePlus2, FileText, MessageCircle, Printer, Truck } from "lucide-react";
+import { ArrowLeft, FilePlus2, FileText, MessageCircle, PackageCheck, Printer, Truck } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
@@ -141,6 +141,14 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       : Promise.resolve({ data: null }),
   ]);
   const st = await getStatuses();
+  // ใบส่งคืนสินค้าชั่วคราวที่มีงานนี้อยู่ (ยังไม่รัน SQL 0012 = ไม่มี)
+  const rnRes = await supabase
+    .from("return_notes")
+    .select("id, note_no, issue_date")
+    .filter("items", "cs", JSON.stringify([{ job_id: id }]))
+    .neq("status", "cancelled")
+    .order("issue_date", { ascending: false });
+  const returnNotes = (rnRes.error ? [] : rnRes.data ?? []) as { id: string; note_no: string; issue_date: string }[];
   const lineDefault = lineCtx ? buildStatusMessage(lineCtx.ctx, st) : "";
   const defaultCarrierId = ((custCarrier.data as { default_carrier_id?: string | null } | null)?.default_carrier_id ?? null) as
     | string
@@ -175,6 +183,16 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           >
             <Printer size={15} /> พิมพ์ใบรับเครื่อง
           </Link>
+          {(job.status === "ready" || returnNotes.length > 0) && (
+            <Link href={`/returns/new?job=${job.id}`} className="btn btn-secondary btn-sm">
+              <PackageCheck size={15} /> ออกใบส่งคืนสินค้าชั่วคราว
+            </Link>
+          )}
+          {returnNotes.map((rn) => (
+            <Link key={rn.id} href={`/returns/${rn.id}`} className="text-xs text-muted hover:text-ink hover:underline">
+              ใบส่งคืน <span className="font-mono">{rn.note_no}</span> ({formatDate(rn.issue_date)})
+            </Link>
+          ))}
           {profile.role === "admin" && <DeleteJobButton jobId={job.id} docNo={job.doc_no} />}
         </div>
       </header>

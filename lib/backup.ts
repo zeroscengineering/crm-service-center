@@ -23,6 +23,7 @@ const TABLES = [
   "quotations",
   "quotation_items",
   "customer_notes",
+  "return_notes",
   "job_statuses",
   "customer_tags",
   "profiles",
