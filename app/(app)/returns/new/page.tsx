@@ -17,7 +17,7 @@ export default async function NewReturnPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   const supabase = await createClient();
 
-  const probe = await supabase.from("return_notes").select("id", { head: true, count: "exact" }).limit(1);
+  const probe = await supabase.from("return_notes").select("id").limit(1);
   if (probe.error) return <SqlNotice />;
 
   const jobIds = (sp.job ?? "").split(",").filter(Boolean);
