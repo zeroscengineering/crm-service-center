@@ -177,6 +177,19 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         </div>
         <div className="flex flex-col items-end gap-2">
           {canEdit && <StatusControl jobId={job.id} status={job.status} />}
+          {job.customers?.line_user_id ? (
+            <Link href={`/chat?c=${encodeURIComponent(job.customers.line_user_id)}`} className="btn btn-line btn-sm">
+              <MessageCircle size={15} /> แชท LINE กับลูกค้า
+            </Link>
+          ) : (
+            <Link
+              href={`/chat?q=${encodeURIComponent(job.customers?.name ?? "")}`}
+              className="btn btn-secondary btn-sm"
+              title="ลูกค้ายังไม่ได้ผูกกับแชท LINE — เปิดหน้าแชทเพื่อหาแชทของลูกค้า แล้วกด เลือกดีลที่สร้างไว้แล้ว"
+            >
+              <MessageCircle size={15} /> หาแชท LINE ของลูกค้า
+            </Link>
+          )}
           <Link
             href={`/print/job/${job.id}`}
             className="btn btn-secondary btn-sm"
@@ -301,7 +314,15 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                 )}
               </Info>
               <Info label="LINE ID">{job.customers?.line_id}</Info>
-              <Info label="แจ้งเตือน LINE">{job.customers?.line_user_id ? "เชื่อมแล้ว " : "ยังไม่เชื่อม"}</Info>
+              <Info label="แจ้งเตือน LINE">
+                {job.customers?.line_user_id ? (
+                  <Link href={`/chat?c=${encodeURIComponent(job.customers.line_user_id)}`} className="font-medium text-[#05a347] hover:underline">
+                    เชื่อมแล้ว · เปิดแชท
+                  </Link>
+                ) : (
+                  "ยังไม่เชื่อม"
+                )}
+              </Info>
               <Info label="ที่อยู่">{job.customers?.address}</Info>
             </dl>
           </Card>
