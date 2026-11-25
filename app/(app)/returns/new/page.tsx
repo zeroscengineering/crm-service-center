@@ -47,6 +47,8 @@ export default async function NewReturnPage({ searchParams }: { searchParams: Pr
     customer_name: cust?.name ?? "",
     customer_address: cust?.address ?? "",
     customer_phone: cust?.phone ?? "",
+    attention: "",
+    destination_note: "",
     issue_date: todayBangkok(),
     status: "issued",
     notes: DEFAULT_RETURN_NOTES,

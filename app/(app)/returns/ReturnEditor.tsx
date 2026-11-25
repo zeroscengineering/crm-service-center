@@ -157,6 +157,23 @@ export default function ReturnEditor({
             <L label="เบอร์โทร">
               <input value={r.customer_phone} onChange={(e) => set("customer_phone", e.target.value)} className="field" />
             </L>
+            <L label="Attention (เรียน / ผู้รับปลายทาง)">
+              <input
+                value={r.attention}
+                onChange={(e) => set("attention", e.target.value)}
+                placeholder="เช่น คุณสมชาย ฝ่ายซ่อมบำรุง"
+                className="field"
+              />
+            </L>
+            <L label="รายละเอียดถึงปลายทาง" className="sm:col-span-2">
+              <textarea
+                rows={3}
+                value={r.destination_note}
+                onChange={(e) => set("destination_note", e.target.value)}
+                placeholder="เช่น ส่งคืนชั่วคราวเพื่อใช้งานระหว่างรออะไหล่ กรุณาส่งเครื่องกลับมาภายใน 14 วัน"
+                className="field"
+              />
+            </L>
           </div>
         </section>
 

@@ -12,6 +12,8 @@ export type ReturnInput = {
   customer_name: string;
   customer_address: string;
   customer_phone: string;
+  attention: string;
+  destination_note: string;
   issue_date: string;
   status: ReturnStatus;
   notes: string;
@@ -110,6 +112,8 @@ export async function saveReturnNote(input: ReturnInput): Promise<ReturnResult> 
     customer_name: input.customer_name.trim(),
     customer_address: input.customer_address.trim() || null,
     customer_phone: input.customer_phone.trim() || null,
+    attention: input.attention.trim() || null,
+    destination_note: input.destination_note.trim() || null,
     issue_date: input.issue_date,
     status: input.status,
     notes: input.notes.trim() || null,

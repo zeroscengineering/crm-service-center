@@ -90,7 +90,20 @@ export default async function PrintReturnPage({ params }: { params: Promise<{ id
           <p className="font-semibold">{n.customer_name as string}</p>
           {n.customer_address && <p className="text-muted">{n.customer_address as string}</p>}
           {n.customer_phone && <p className="text-muted">โทร {formatPhone(n.customer_phone as string)}</p>}
+          {n.attention && (
+            <p className="mt-1">
+              <span className="font-semibold">Attention: </span>
+              {n.attention as string}
+            </p>
+          )}
         </section>
+
+        {n.destination_note && (
+          <section className="mt-3 rounded-md border-l-4 border-graphite bg-steel/60 px-3 py-2 [break-inside:avoid]">
+            <p className="text-[11px] font-semibold text-muted">รายละเอียดถึงปลายทาง</p>
+            <p className="whitespace-pre-wrap">{n.destination_note as string}</p>
+          </section>
+        )}
 
         {/* รายการ */}
         <table className="mt-4 w-full border-collapse text-[12.5px]">

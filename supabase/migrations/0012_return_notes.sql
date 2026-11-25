@@ -35,3 +35,7 @@ create policy "staff read return_notes"   on return_notes for select to authenti
 create policy "staff insert return_notes" on return_notes for insert to authenticated with check (is_staff());
 create policy "staff update return_notes" on return_notes for update to authenticated using (is_staff()) with check (is_staff());
 create policy "admin delete return_notes" on return_notes for delete to authenticated using (is_admin());
+
+-- Attention (ผู้รับปลายทาง) + ข้อความถึงปลายทาง
+alter table return_notes add column if not exists attention text;
+alter table return_notes add column if not exists destination_note text;

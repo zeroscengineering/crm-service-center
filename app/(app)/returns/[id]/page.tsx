@@ -27,6 +27,8 @@ export default async function ReturnDetailPage({ params }: { params: Promise<{ i
     customer_name: n.customer_name as string,
     customer_address: (n.customer_address as string | null) ?? "",
     customer_phone: (n.customer_phone as string | null) ?? "",
+    attention: (n.attention as string | null) ?? "",
+    destination_note: (n.destination_note as string | null) ?? "",
     issue_date: n.issue_date as string,
     status: n.status as ReturnStatus,
     notes: (n.notes as string | null) ?? "",
